@@ -1,0 +1,46 @@
+{{define "index"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sydney Uni Squash attendance</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/detail.css">
+</head>
+<body>
+  {{if .Synthetic}}<div class="synthetic" role="status">Synthetic development data only</div>{{end}}
+  <a class="skip-link" href="#timetable">Skip to timetable</a>
+  <div class="app-frame">
+    <aside class="sidebar" aria-label="Club navigation">
+      <div class="masthead"><span class="club-mark" aria-hidden="true">SU</span><div><strong>Sydney Uni Squash</strong><span>Attendance tracker</span></div></div>
+      <nav><a class="active" href="/" aria-current="page">▦ <span>Attendance</span></a><a href="#club-info">ⓘ <span>Club information</span></a></nav>
+      <section id="club-info" class="club-info"><h2>New to the club?</h2><p>Location, contact and WhatsApp details are awaiting committee-approved copy.</p></section>
+    </aside>
+    <main>
+      <header class="page-header"><div><p class="eyebrow">Next 14 days</p><h1>Planned attendance</h1></div><span class="account-state">Signed out</span></header>
+      <p class="orientation">See when people plan to play. Attendance does not reserve a court.</p>
+      <details class="legend"><summary>How the timetable works</summary><div><span><i class="dot empty"></i> Empty</span><span><i class="dot players"></i> Players attending</span><span><i class="dot good"></i> Good turnout</span><span><i class="dot crowded"></i> Crowded</span></div><p>Court rails show operating conditions only. Court use remains first-come-first-served in person.</p></details>
+      <nav class="date-navigation" aria-label="Timetable dates">
+        {{if .Dashboard.PreviousDate}}<a class="date-step" href="/?date={{.Dashboard.PreviousDate}}" aria-label="Previous day">←</a>{{else}}<span class="date-step disabled" aria-hidden="true">←</span>{{end}}
+        <div class="date-strip">{{range .Dashboard.Days}}<a href="/?date={{.Date}}" {{if .Selected}}aria-current="date"{{end}}><strong>{{.DayName}}</strong><span>{{.DateLabel}}</span>{{if .Social}}<small>◉ Official social</small>{{end}}</a>{{end}}</div>
+        {{if .Dashboard.NextDate}}<a class="date-step" href="/?date={{.Dashboard.NextDate}}" aria-label="Next day">→</a>{{else}}<span class="date-step disabled" aria-hidden="true">→</span>{{end}}
+      </nav>
+      <section id="timetable" aria-labelledby="timetable-heading">
+        <h2 id="timetable-heading" class="visually-hidden">Venue turnout and court status timetable</h2>
+        <div class="desktop-timetable">
+          <table>
+            <thead><tr><th scope="col">Time</th>{{range .Dashboard.Days}}<th scope="col"><span>{{.DayName}} {{.DateLabel}}</span>{{if .Social}}<small>◉ Official social</small>{{end}}</th>{{end}}</tr></thead>
+            <tbody>{{range .Dashboard.Rows}}<tr><th scope="row"><time>{{.TimeLabel}}</time></th>{{range .Cells}}<td><a class="turnout {{.Slot.BandClass}}" href="/?date={{.Day.Date}}&amp;time={{.Slot.StartMinute}}" aria-label="{{.Day.DayName}} {{.Day.DateLabel}}, {{.Slot.TimeLabel}}: {{.Slot.Count}} planned attendees, {{.Slot.Band}}. View interval details"><strong><span aria-hidden="true">☷</span> {{.Slot.Count}} · {{.Slot.Band}}</strong>{{if .Slot.ReducedCapacity}}<small>⚠ One court open</small>{{end}}</a><div class="court-rails"><span class="{{.Slot.CourtOne.Class}}"><i aria-hidden="true">{{.Slot.CourtOne.Icon}}</i> C1 <b>{{.Slot.CourtOne.Label}}</b></span><span class="{{.Slot.CourtTwo.Class}}"><i aria-hidden="true">{{.Slot.CourtTwo.Icon}}</i> C2 <b>{{.Slot.CourtTwo.Label}}</b></span></div></td>{{end}}</tr>{{end}}</tbody>
+          </table>
+        </div>
+        <div class="mobile-timetable">
+          {{range .Dashboard.Days}}{{if .Selected}}{{$day := .}}<h3>{{.DayName}} {{.DateLabel}}{{if .Social}} <small>◉ Official social</small>{{end}}</h3><ol class="slot-list">{{range .Slots}}<li><time>{{.TimeLabel}}</time><a class="turnout {{.BandClass}}" href="/?date={{$day.Date}}&amp;time={{.StartMinute}}"><strong><span aria-hidden="true">☷</span> {{.Count}} · {{.Band}}</strong>{{if .ReducedCapacity}}<small>⚠ Reduced capacity: one court open</small>{{end}}</a><div class="court-rails"><span class="{{.CourtOne.Class}}"><i aria-hidden="true">{{.CourtOne.Icon}}</i> C1 {{.CourtOne.Label}}</span><span class="{{.CourtTwo.Class}}"><i aria-hidden="true">{{.CourtTwo.Icon}}</i> C2 {{.CourtTwo.Label}}</span></div></li>{{end}}</ol>{{end}}{{end}}
+        </div>
+      </section>
+      {{with .Dashboard.Detail}}<aside class="interval-detail" aria-labelledby="interval-detail-heading"><a class="detail-close" href="/?date={{.Date}}" aria-label="Close interval details">×</a><p class="eyebrow">Interval details</p><h2 id="interval-detail-heading">{{.DateLabel}} at {{.TimeLabel}}</h2><p><strong>{{.Count}} · {{.Band}}</strong></p>{{if .ReducedCapacity}}<p class="capacity-warning">⚠ Reduced capacity: one court open</p>{{end}}<dl><div><dt>Court 1</dt><dd>{{.CourtOne.Icon}} {{.CourtOne.Label}}</dd></div><div><dt>Court 2</dt><dd>{{.CourtTwo.Icon}} {{.CourtTwo.Label}}</dd></div></dl>{{if eq .Count 0}}<p>No one has announced attendance yet.</p>{{else}}<p>Named attendance details remain disabled until the committee approves public identity exposure.</p>{{end}}</aside>{{end}}
+    </main>
+  </div>
+</body>
+</html>
+{{end}}

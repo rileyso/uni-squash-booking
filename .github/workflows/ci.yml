@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.4"
+          cache: true
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+      - name: Test
+        run: go test ./...
+      - name: Coverage
+        run: |
+          go test -coverpkg=./internal/app,./internal/config,./internal/domain,./internal/sqlite,./internal/web -coverprofile=coverage.out ./internal/...
+          percent=$(go tool cover -func=coverage.out | awk '/^total:/ { gsub("%", "", $3); print $3 }')
+          awk -v percent="$percent" 'BEGIN { if (percent + 0 < 80) { print "coverage " percent "% is below 80%"; exit 1 } }'
+      - name: Race
+        run: go test -race ./...
+      - name: Vet
+        run: go vet ./...

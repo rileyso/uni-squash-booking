@@ -1,0 +1,22 @@
+{
+  "public_named_attendance": {
+    "status": "pending",
+    "approved_by": "",
+    "approved_on": ""
+  },
+  "public_account_creation": {
+    "status": "pending",
+    "approved_by": "",
+    "approved_on": ""
+  },
+  "pin_reset_evidence": {
+    "status": "pending",
+    "approved_by": "",
+    "approved_on": ""
+  },
+  "retention_and_deletion": {
+    "status": "pending",
+    "approved_by": "",
+    "approved_on": ""
+  }
+}

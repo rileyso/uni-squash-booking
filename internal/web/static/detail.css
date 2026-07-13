@@ -1,0 +1,35 @@
+.turnout {
+  display: block;
+  color: var(--navy);
+  text-decoration: none;
+}
+
+.interval-detail {
+  position: fixed;
+  z-index: 10;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  width: min(25rem, calc(100vw - 3rem));
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: .75rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 42, 67, .14);
+}
+
+.interval-detail h2 { margin-top: .25rem; }
+.interval-detail dl > div { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--border); padding: .5rem 0; }
+.interval-detail dd { margin: 0; text-align: right; }
+.detail-close { float: right; min-width: 44px; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: .5rem; color: var(--navy); text-decoration: none; font-size: 1.5rem; }
+.capacity-warning { color: var(--warning); font-weight: 700; }
+
+@media (max-width: 880px) {
+  .interval-detail {
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 75vh;
+    overflow: auto;
+    border-radius: .75rem .75rem 0 0;
+  }
+}
