@@ -70,6 +70,22 @@ func TestAuthenticatedAttendanceReviewAndConfirmation(t *testing.T) {
 	}
 }
 
+func TestAttendanceEditorUsesHiddenDateAndOneGraduatedTimeline(t *testing.T) {
+	server := newTestServer(t)
+	session, err := server.app.CreateAccount(context.Background(), "Timeline Tester", "7531", "member", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/attendance/new?date=2026-07-15&start=900", nil)
+	request.AddCookie(&http.Cookie{Name: sessionCookie, Value: session.Token})
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	body := response.Body.String()
+	if response.Code != http.StatusOK || strings.Contains(body, `type="date"`) || !strings.Contains(body, `Wednesday 15 July`) || !strings.Contains(body, `<small>Coming</small><small>Leaving</small>`) || !strings.Contains(body, `class="graduated-timeline"`) || !strings.Contains(body, `data-allowed-start="870" data-allowed-end="1320"`) || strings.Count(body, `class="closed"`) == 0 || strings.Count(body, `type="range"`) != 2 || strings.Count(body, `min="600" max="1320"`) != 2 || strings.Count(body, `value="900" data-start-range`) != 1 {
+		t.Fatalf("attendance editor has unexpected date/timeline controls: %s", body)
+	}
+}
+
 func newTestServer(t *testing.T) *Server {
 	t.Helper()
 	configuration, err := config.Load(func(key string) string {

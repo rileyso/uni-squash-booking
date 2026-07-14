@@ -36,6 +36,32 @@ type Plan struct {
 	StartMinute, EndMinute                int
 }
 
+type PlayableSegment struct{ StartMinute, EndMinute int }
+
+func (s *Service) PlayableSegments(ctx context.Context, dateValue string) ([]PlayableSegment, error) {
+	date, err := domain.ParseCivilDate(dateValue)
+	if err != nil {
+		return nil, ErrInvalidInput
+	}
+	data, err := s.store.LoadAnonymousTimetable(ctx, date, date)
+	if err != nil {
+		return nil, err
+	}
+	var segments []PlayableSegment
+	for minute := 600; minute < 1320; minute += 30 {
+		bucket, _ := domain.NewInterval(minute, minute+30)
+		one := courtState(data.Weekly, data.OneOffs, date, 1, bucket, s.location)
+		two := courtState(data.Weekly, data.OneOffs, date, 2, bucket, s.location)
+		open := one.Class == "open" || two.Class == "open"
+		if open && (len(segments) == 0 || segments[len(segments)-1].EndMinute != minute) {
+			segments = append(segments, PlayableSegment{StartMinute: minute, EndMinute: minute + 30})
+		} else if open {
+			segments[len(segments)-1].EndMinute = minute + 30
+		}
+	}
+	return segments, nil
+}
+
 func (s *Service) IdentityEnabled() bool {
 	return s.config.Synthetic || s.config.Capabilities.PublicAccountCreation
 }
@@ -144,6 +170,9 @@ func (s *Service) ValidateAttendance(ctx context.Context, dateValue string, star
 	}
 	interval, err := domain.NewInterval(start, end)
 	if err != nil {
+		return ErrInvalidInput
+	}
+	if start < 600 || end > 1320 || end-start < 60 {
 		return ErrInvalidInput
 	}
 	today := domain.CivilDateFromTime(s.now(), s.location)

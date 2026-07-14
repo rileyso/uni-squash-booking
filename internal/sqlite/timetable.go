@@ -38,7 +38,7 @@ func (s *Store) LoadAnonymousTimetable(ctx context.Context, from, through domain
 	return AnonymousTimetableData{Weekly: weekly, OneOffs: oneOffs, Social: social, Attendance: attendance}, nil
 }
 
-func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDate, location *time.Location) error {
+func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDate, location *time.Location, trialPINHash string) error {
 	weekday := int(today.Weekday(location))
 	if weekday == 0 {
 		weekday = 7
@@ -104,6 +104,12 @@ func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDat
 				return fmt.Errorf("insert synthetic court occupation: %w", err)
 			}
 		}
+	}
+	if trialPINHash == "" {
+		trialPINHash = "synthetic-disabled"
+	}
+	if _, err := transaction.ExecContext(ctx, `INSERT INTO accounts (player_code, full_username, display_name, pin_hash, member_status, created_at_utc) VALUES ('1111', 'john#1111', 'John', ?, 'member', 0)`, trialPINHash); err != nil {
+		return fmt.Errorf("insert synthetic trial account: %w", err)
 	}
 	for member := 1; member <= 12; member++ {
 		code := fmt.Sprintf("%04d", member)

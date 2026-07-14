@@ -186,6 +186,10 @@ type attendanceData struct {
 	EndLabel          string
 	Duration          string
 	Times             []timeOption
+	DateHeading       string
+	AllowedStart      int
+	AllowedEnd        int
+	Availability      []bool
 }
 
 func (s *Server) attendancePage(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +201,7 @@ func (s *Server) attendancePage(w http.ResponseWriter, r *http.Request) {
 	}
 	date := r.URL.Query().Get("date")
 	start, _ := strconv.Atoi(r.URL.Query().Get("start"))
-	if start%30 != 0 {
+	if start < 600 || start > 1260 || start%30 != 0 {
 		start = 1020
 	}
 	end := start + 60
@@ -209,7 +213,9 @@ func (s *Server) attendancePage(w http.ResponseWriter, r *http.Request) {
 	if has {
 		start, end = existing.StartMinute, existing.EndMinute
 	}
-	s.render(w, "attendance", attendanceData{Synthetic: s.app.Synthetic(), Member: member, CSRF: csrf, Date: date, Start: start, End: end, Existing: has, Times: timeOptions()})
+	data := attendanceData{Synthetic: s.app.Synthetic(), Member: member, CSRF: csrf, Date: date, Start: start, End: end, Existing: has, Times: timeOptions()}
+	s.decorateAttendance(r, &data)
+	s.render(w, "attendance", data)
 }
 
 func (s *Server) reviewAttendance(w http.ResponseWriter, r *http.Request) {
@@ -225,6 +231,7 @@ func (s *Server) reviewAttendance(w http.ResponseWriter, r *http.Request) {
 	start, _ := strconv.Atoi(r.FormValue("start"))
 	end, _ := strconv.Atoi(r.FormValue("end"))
 	data := attendanceData{Synthetic: s.app.Synthetic(), Member: member, CSRF: csrf, Date: r.FormValue("date"), Start: start, End: end, Times: timeOptions()}
+	s.decorateAttendance(r, &data)
 	if err := s.app.ValidateAttendance(r.Context(), data.Date, start, end); err != nil {
 		data.Error = "That interval is not continuously open for play. Choose another range."
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -252,7 +259,9 @@ func (s *Server) saveAttendance(w http.ResponseWriter, r *http.Request) {
 	end, _ := strconv.Atoi(r.FormValue("end"))
 	if err := s.app.SaveAttendance(r.Context(), member, r.FormValue("date"), start, end); err != nil {
 		w.WriteHeader(409)
-		s.render(w, "attendance", attendanceData{Synthetic: s.app.Synthetic(), Member: member, CSRF: csrf, Error: "That interval is no longer continuously open for play. Choose another range.", Date: r.FormValue("date"), Start: start, End: end, Times: timeOptions()})
+		data := attendanceData{Synthetic: s.app.Synthetic(), Member: member, CSRF: csrf, Error: "That interval is no longer continuously open for play. Choose another range.", Date: r.FormValue("date"), Start: start, End: end, Times: timeOptions()}
+		s.decorateAttendance(r, &data)
+		s.render(w, "attendance", data)
 		return
 	}
 	http.Redirect(w, r, "/?date="+url.QueryEscape(r.FormValue("date")), http.StatusSeeOther)
@@ -299,7 +308,7 @@ func intentDestination(date, start string) string {
 }
 func timeOptions() []timeOption {
 	var result []timeOption
-	for minute := 0; minute <= 1440; minute += 30 {
+	for minute := 600; minute <= 1320; minute += 30 {
 		h := minute / 60
 		m := minute % 60
 		label := fmtTime(h, m)
@@ -322,6 +331,36 @@ func formatDuration(minutes int) string {
 		return strconv.Itoa(minutes/60) + " hours"
 	}
 	return strconv.Itoa(minutes/60) + "½ hours"
+}
+
+func (s *Server) decorateAttendance(r *http.Request, data *attendanceData) {
+	if date, err := time.Parse("2006-01-02", data.Date); err == nil {
+		data.DateHeading = date.Format("Monday 2 January")
+	}
+	data.AllowedStart, data.AllowedEnd = 600, 1320
+	data.Availability = make([]bool, 24)
+	segments, err := s.app.PlayableSegments(r.Context(), data.Date)
+	if err != nil {
+		return
+	}
+	for index := range data.Availability {
+		minute := 600 + index*30
+		for _, segment := range segments {
+			if minute >= segment.StartMinute && minute < segment.EndMinute {
+				data.Availability[index] = true
+				break
+			}
+		}
+	}
+	for _, segment := range segments {
+		if data.Start >= segment.StartMinute && data.Start < segment.EndMinute && segment.EndMinute-segment.StartMinute >= 60 {
+			data.AllowedStart, data.AllowedEnd = segment.StartMinute, segment.EndMinute
+			if data.End > data.AllowedEnd {
+				data.End = data.AllowedEnd
+			}
+			break
+		}
+	}
 }
 
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {

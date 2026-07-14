@@ -35,11 +35,11 @@ func TestSyntheticFixturesFeedIdentityFreeTimetable(t *testing.T) {
 	defer store.Close()
 	location, _ := time.LoadLocation("Australia/Sydney")
 	today, _ := domain.ParseCivilDate("2026-07-14")
-	if err := store.LoadSyntheticFixtures(ctx, today, location); err != nil {
+	if err := store.LoadSyntheticFixtures(ctx, today, location, "synthetic-disabled"); err != nil {
 		t.Fatal(err)
 	}
 	// Loading twice for the same date is deliberately idempotent.
-	if err := store.LoadSyntheticFixtures(ctx, today, location); err != nil {
+	if err := store.LoadSyntheticFixtures(ctx, today, location, "synthetic-disabled"); err != nil {
 		t.Fatal(err)
 	}
 	data, err := store.LoadAnonymousTimetable(ctx, today, today.AddDays(6, location))

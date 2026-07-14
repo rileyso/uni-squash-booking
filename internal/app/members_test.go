@@ -43,6 +43,17 @@ func TestAccountSessionAndMultipleDailyPlans(t *testing.T) {
 	}
 }
 
+func TestSyntheticJohnTrialAccount(t *testing.T) {
+	service := testService(t)
+	session, err := service.SignIn(context.Background(), "john#1111", "1111")
+	if err != nil {
+		t.Fatalf("sign in synthetic John: %v", err)
+	}
+	if session.Member.DisplayName != "John" {
+		t.Fatalf("trial display name = %q", session.Member.DisplayName)
+	}
+}
+
 func TestAttendanceRejectsUnavailableAndInvalidRanges(t *testing.T) {
 	service := testService(t)
 	ctx := context.Background()
@@ -56,6 +67,7 @@ func TestAttendanceRejectsUnavailableAndInvalidRanges(t *testing.T) {
 		start, end int
 	}{
 		{"2026-07-14", 840, 900},
+		{"2026-07-14", 960, 990},
 		{"2026-07-14", 960, 975},
 		{"2026-07-28", 960, 1020},
 	} {

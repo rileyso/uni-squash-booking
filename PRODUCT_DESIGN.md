@@ -148,7 +148,7 @@ Colour must not be the only status indicator. Every status also requires a text 
 
 - A signed-in member chooses a day, arrival time, and departure time; the interface also shows the resulting expected duration.
 - Time is selected in 30-minute increments.
-- An interval has a 30-minute minimum, cannot cross midnight, and cannot extend beyond that day's final playable light-off time.
+- An interval has a one-hour minimum, uses 30-minute boundaries between 10:00 am and 10:00 pm, cannot cross midnight, and cannot extend beyond that day's final playable light-off time.
 - Attendance uses half-open time intervals `[arrival, departure)`: a member leaving at 19:00 does not count in the 19:00-19:30 turnout bucket.
 - Attendance is venue-wide; the member does not select Court 1 or Court 2.
 - Registration is allowed whenever at least one court is open during the full selected interval. If only one court is open, the confirmation repeats the reduced-capacity warning.

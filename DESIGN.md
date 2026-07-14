@@ -237,7 +237,7 @@ Decision: seven day columns with time running vertically.
 
 - Desktop opens a right-side panel while the weekly timetable remains visible and the chosen interval stays highlighted.
 - Mobile opens a full-screen sheet rather than a cramped modal.
-- Step 1 selects date, 30-minute arrival, and departure constrained by current venue availability. An accessible two-handle visual range is synchronised with explicit arrival and departure fields, and the resulting duration is shown in text.
+- Step 1 selects date, 30-minute arrival, and departure between 10:00 am and 10:00 pm, constrained by current venue availability and a one-hour minimum. An accessible two-handle visual range is synchronised with explicit arrival and departure fields, and the resulting duration is shown in text.
 - Step 2 presents a short review containing date, arrival, departure, venue-wide wording, current turnout, reduced-capacity or schedule warnings, public-name notice, and the primary `Confirm attendance` action.
 - `Back` returns to the editable fields without losing values. `Close` exits without creating a plan and returns focus to the trigger.
 - Confirmation success closes the panel or sheet, updates the timetable and `Your plans`, and announces the result through an accessible live region.
