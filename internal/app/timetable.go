@@ -38,6 +38,8 @@ type IntervalDetail struct {
 	CourtOne        CourtState
 	CourtTwo        CourtState
 	ReducedCapacity bool
+	CanAttend       bool
+	StartMinute     int
 }
 
 type TimetableRow struct {
@@ -51,14 +53,15 @@ type TimetableCell struct {
 }
 
 type Day struct {
-	Date      string
-	DayName   string
-	DateLabel string
-	DateShort string
-	Today     bool
-	Social    bool
-	Selected  bool
-	Slots     []Slot
+	Date       string
+	DayName    string
+	DateLabel  string
+	DateShort  string
+	Today      bool
+	Social     bool
+	SocialTime string
+	Selected   bool
+	Slots      []Slot
 }
 
 type Slot struct {
@@ -90,32 +93,38 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 			selected = parsed
 		}
 	}
-	windowEnd := nextWeekEnd
-	stripStart := selected
-	if stripStart.AddDays(7, s.location).Time(s.location).After(windowEnd.Time(s.location)) {
-		stripStart = windowEnd.AddDays(-7, s.location)
-	}
-	through := stripStart.AddDays(7, s.location)
+	stripStart := mondayOfWeek(selected, s.location)
+	through := stripStart.AddDays(6, s.location)
 	data, err := s.store.LoadAnonymousTimetable(ctx, stripStart, through)
 	if err != nil {
 		return Dashboard{}, err
 	}
 	dashboard := Dashboard{SelectedDate: selected.String()}
 	dashboard.DateChoices = dateChoices(today, selected, s.location)
-	if mondayOfWeek(selected, s.location) != currentWeekStart {
-		dashboard.PreviousDate = today.String()
-	} else {
-		dashboard.NextDate = currentWeekStart.AddDays(7, s.location).String()
+	if previous := selected.AddDays(-1, s.location); !previous.Time(s.location).Before(currentWeekStart.Time(s.location)) {
+		dashboard.PreviousDate = previous.String()
+	}
+	if next := selected.AddDays(1, s.location); !next.Time(s.location).After(nextWeekEnd.Time(s.location)) {
+		dashboard.NextDate = next.String()
 	}
 	var selectedDay Day
 	for date := stripStart; !date.Time(s.location).After(through.Time(s.location)); date = date.AddDays(1, s.location) {
 		localTime := date.Time(s.location)
 		day := Day{Date: date.String(), DayName: localTime.Format("Mon"), DateLabel: localTime.Format("2 Jan"), DateShort: localTime.Format("02/01"), Today: date == today, Selected: date == selected}
 		day.Social = socialOnDate(data.Social, date, s.location)
-		for minute := 1020; minute < 1320; minute += 30 {
-			interval, _ := domain.NewInterval(minute, minute+30)
+		day.SocialTime = socialTimeOnDate(data.Social, date, s.location)
+		for minute := 600; minute <= 1320; minute += 60 {
+			interval, _ := domain.NewInterval(minute, minute+60)
 			one := courtState(data.Weekly, data.OneOffs, date, 1, interval, s.location)
 			two := courtState(data.Weekly, data.OneOffs, date, 2, interval, s.location)
+			if socialOverlaps(data.Social, date, interval, s.location) {
+				if one.Class == "open" {
+					one.Note = "Social"
+				}
+				if two.Class == "open" {
+					two.Note = "Social"
+				}
+			}
 			count := attendanceCount(data.Attendance, date.String(), interval)
 			band, class := turnoutBand(count)
 			day.Slots = append(day.Slots, Slot{StartMinute: minute, TimeLabel: minuteLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open")})
@@ -126,13 +135,17 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		}
 	}
 	for minute := 600; minute <= 1320; minute += 60 {
-		end := minute + 60
-		if minute == 1320 {
-			end = minute + 30
-		}
-		interval, _ := domain.NewInterval(minute, end)
+		interval, _ := domain.NewInterval(minute, minute+60)
 		one := courtState(data.Weekly, data.OneOffs, selected, 1, interval, s.location)
 		two := courtState(data.Weekly, data.OneOffs, selected, 2, interval, s.location)
+		if socialOverlaps(data.Social, selected, interval, s.location) {
+			if one.Class == "open" {
+				one.Note = "Social"
+			}
+			if two.Class == "open" {
+				two.Note = "Social"
+			}
+		}
 		count := attendanceCount(data.Attendance, selected.String(), interval)
 		band, class := turnoutBand(count)
 		dashboard.DesktopSlots = append(dashboard.DesktopSlots, Slot{StartMinute: minute, TimeLabel: hourLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open")})
@@ -151,7 +164,7 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		}
 		for _, slot := range detailSlots {
 			if slot.StartMinute == minute {
-				dashboard.Detail = &IntervalDetail{DateLabel: selectedDay.DayName + " " + selectedDay.DateLabel, Date: selectedDay.Date, TimeLabel: slot.TimeLabel, Count: slot.Count, Band: slot.Band, CourtOne: slot.CourtOne, CourtTwo: slot.CourtTwo, ReducedCapacity: slot.ReducedCapacity}
+				dashboard.Detail = &IntervalDetail{DateLabel: selectedDay.DayName + " " + selectedDay.DateLabel, Date: selectedDay.Date, TimeLabel: slot.TimeLabel, Count: slot.Count, Band: slot.Band, CourtOne: slot.CourtOne, CourtTwo: slot.CourtTwo, ReducedCapacity: slot.ReducedCapacity, CanAttend: slot.CourtOne.Class == "open" || slot.CourtTwo.Class == "open", StartMinute: slot.StartMinute}
 				break
 			}
 		}
@@ -180,9 +193,23 @@ func dateChoice(date, today, selected domain.CivilDate, location *time.Location)
 }
 
 func socialOnDate(rows []sqlcdb.SocialSession, date domain.CivilDate, location *time.Location) bool {
+	return socialTimeOnDate(rows, date, location) != ""
+}
+
+func socialTimeOnDate(rows []sqlcdb.SocialSession, date domain.CivilDate, location *time.Location) string {
 	iso := isoWeekday(date.Weekday(location))
 	for _, row := range rows {
 		if int64(iso) == row.IsoWeekday && date.String() >= row.EffectiveStartDate && (!row.EffectiveEndDate.Valid || date.String() <= row.EffectiveEndDate.String) {
+			return compactMinuteLabel(int(row.StartMinute)) + "–" + compactMinuteLabel(int(row.EndMinute))
+		}
+	}
+	return ""
+}
+
+func socialOverlaps(rows []sqlcdb.SocialSession, date domain.CivilDate, interval domain.Interval, location *time.Location) bool {
+	iso := isoWeekday(date.Weekday(location))
+	for _, row := range rows {
+		if int64(iso) == row.IsoWeekday && date.String() >= row.EffectiveStartDate && (!row.EffectiveEndDate.Valid || date.String() <= row.EffectiveEndDate.String) && overlaps(row.StartMinute, row.EndMinute, interval) {
 			return true
 		}
 	}
@@ -281,6 +308,10 @@ func minuteLabel(minute int) string {
 
 func hourLabel(minute int) string {
 	return time.Date(2000, 1, 1, minute/60, minute%60, 0, 0, time.UTC).Format("15:04")
+}
+
+func compactMinuteLabel(minute int) string {
+	return time.Date(2000, 1, 1, minute/60, minute%60, 0, 0, time.UTC).Format("3:04pm")
 }
 
 func (s Slot) AccessibleLabel(day Day) string {

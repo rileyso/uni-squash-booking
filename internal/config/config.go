@@ -81,6 +81,9 @@ func Load(getenv func(string) string) (Config, error) {
 		if !isLoopback(address) {
 			return Config{}, errors.New("development and test must bind to loopback")
 		}
+		// M3 identity functionality is available only with disposable synthetic
+		// data outside production. Production remains approval-gated below.
+		config.Capabilities = Capabilities{PublicNamedAttendance: true, PublicAccountCreation: true, PINReset: true, SelfDelete: true}
 		return config, nil
 	}
 	if recoveryGeneration == "" {
