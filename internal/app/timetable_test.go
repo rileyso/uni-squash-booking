@@ -1,0 +1,128 @@
+package app
+
+import (
+	"context"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/rileyso/uni-squash-booking/internal/config"
+	"github.com/rileyso/uni-squash-booking/internal/domain"
+	"github.com/rileyso/uni-squash-booking/internal/sqlite"
+)
+
+func testService(t *testing.T) *Service {
+	t.Helper()
+	configuration := config.Config{Environment: config.Test, DatabasePath: filepath.Join(t.TempDir(), "test.sqlite"), RecoveryGeneration: "test-generation", Synthetic: true}
+	store, err := sqlite.Open(context.Background(), configuration.DatabasePath, configuration.RecoveryGeneration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { store.Close() })
+	service, err := New(configuration, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixed := time.Date(2026, 7, 14, 2, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return fixed }
+	today := domain.CivilDateFromTime(fixed, service.location)
+	if err := store.LoadSyntheticFixtures(context.Background(), today, service.location); err != nil {
+		t.Fatal(err)
+	}
+	return service
+}
+
+func TestDashboardHasFixedBandsAndReducedCapacity(t *testing.T) {
+	dashboard, err := testService(t).Dashboard(context.Background(), "2026-07-14", "1080")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dashboard.Days) != 8 || len(dashboard.Rows) != 10 || len(dashboard.DesktopSlots) != 13 {
+		t.Fatalf("unexpected dimensions: %d days, %d rows", len(dashboard.Days), len(dashboard.Rows))
+	}
+	if len(dashboard.DateChoices) != 7 || dashboard.DateChoices[0].Today || dashboard.DateChoices[0].Date != "2026-07-13" {
+		t.Fatalf("date choices are not a plain Monday-Sunday range: %#v", dashboard.DateChoices)
+	}
+	sunday := dashboard.Days[5]
+	if !dashboard.Days[0].Social || sunday.Social {
+		t.Fatal("official social days do not match the supplied schedule")
+	}
+	if sunday.Slots[2].Band != "Crowded" || sunday.Slots[2].Count != 12 {
+		t.Fatalf("unexpected crowded fixture: %#v", sunday.Slots[2])
+	}
+	if dashboard.Detail == nil || dashboard.Detail.TimeLabel != "18:00" {
+		t.Fatalf("interval detail missing: %#v", dashboard.Detail)
+	}
+}
+
+func TestDashboardRejectsDateOutsideWindow(t *testing.T) {
+	dashboard, err := testService(t).Dashboard(context.Background(), "2026-08-01", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dashboard.SelectedDate != "2026-07-14" {
+		t.Fatalf("selected date = %s", dashboard.SelectedDate)
+	}
+}
+
+func TestDateChoicesStayStableUntilRangeArrow(t *testing.T) {
+	service := testService(t)
+	firstPage, err := service.Dashboard(context.Background(), "2026-07-17", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstPage.DateChoices[0].Date != "2026-07-13" || firstPage.DateChoices[6].Date != "2026-07-19" || firstPage.NextDate != "2026-07-20" {
+		t.Fatalf("first date page rolled with selection: %#v", firstPage.DateChoices)
+	}
+	secondPage, err := service.Dashboard(context.Background(), firstPage.NextDate, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secondPage.DateChoices[0].Date != "2026-07-20" || secondPage.DateChoices[6].Date != "2026-07-26" || secondPage.PreviousDate != "2026-07-14" {
+		t.Fatalf("unexpected second date page: %#v", secondPage.DateChoices)
+	}
+	pastDay, err := service.Dashboard(context.Background(), "2026-07-13", "")
+	if err != nil || pastDay.SelectedDate != "2026-07-13" {
+		t.Fatalf("elapsed current-week day is unavailable: selected=%s err=%v", pastDay.SelectedDate, err)
+	}
+}
+
+func TestSaturdaySquadsHaveCoachingNote(t *testing.T) {
+	dashboard, err := testService(t).Dashboard(context.Background(), "2026-07-18", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dashboard.DesktopSlots[0].CourtOne.Note != "Squads" || dashboard.DesktopSlots[0].CourtTwo.Note != "Squads" {
+		t.Fatalf("Saturday squads note missing: %#v", dashboard.DesktopSlots[0])
+	}
+}
+
+func TestTurnoutBandBoundaries(t *testing.T) {
+	for _, test := range []struct {
+		count int
+		want  string
+	}{{0, "Empty"}, {1, "Players attending"}, {4, "Players attending"}, {5, "Good turnout"}, {9, "Good turnout"}, {10, "Crowded"}} {
+		got, _ := turnoutBand(test.count)
+		if got != test.want {
+			t.Fatalf("turnoutBand(%d) = %q, want %q", test.count, got, test.want)
+		}
+	}
+}
+
+func TestServiceStatusMethods(t *testing.T) {
+	service := testService(t)
+	if !service.Synthetic() {
+		t.Fatal("test service is not synthetic")
+	}
+	if err := service.Ready(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	label := serviceLabelFixture()
+	if label == "" {
+		t.Fatal("accessible slot label is empty")
+	}
+}
+
+func serviceLabelFixture() string {
+	return (Slot{TimeLabel: "6:00 pm", Count: 5, Band: "Good turnout", CourtOne: statusView("open"), CourtTwo: statusView("coaching")}).AccessibleLabel(Day{DayName: "Tue", DateLabel: "14 Jul"})
+}

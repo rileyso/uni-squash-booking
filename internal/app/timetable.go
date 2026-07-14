@@ -1,0 +1,288 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/rileyso/uni-squash-booking/internal/domain"
+	"github.com/rileyso/uni-squash-booking/internal/sqlite/sqlcdb"
+)
+
+type Dashboard struct {
+	Days         []Day
+	DateChoices  []DateChoice
+	Rows         []TimetableRow
+	DesktopSlots []Slot
+	SelectedDate string
+	PreviousDate string
+	NextDate     string
+	Detail       *IntervalDetail
+}
+
+type DateChoice struct {
+	Date      string
+	DayName   string
+	DateShort string
+	Today     bool
+	Selected  bool
+}
+
+type IntervalDetail struct {
+	DateLabel       string
+	Date            string
+	TimeLabel       string
+	Count           int
+	Band            string
+	CourtOne        CourtState
+	CourtTwo        CourtState
+	ReducedCapacity bool
+}
+
+type TimetableRow struct {
+	TimeLabel string
+	Cells     []TimetableCell
+}
+
+type TimetableCell struct {
+	Day  Day
+	Slot Slot
+}
+
+type Day struct {
+	Date      string
+	DayName   string
+	DateLabel string
+	DateShort string
+	Today     bool
+	Social    bool
+	Selected  bool
+	Slots     []Slot
+}
+
+type Slot struct {
+	StartMinute     int
+	TimeLabel       string
+	Count           int
+	Band            string
+	BandClass       string
+	CourtOne        CourtState
+	CourtTwo        CourtState
+	ReducedCapacity bool
+}
+
+type CourtState struct {
+	Label string
+	Class string
+	Icon  string
+	Note  string
+}
+
+func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute string) (Dashboard, error) {
+	today := domain.CivilDateFromTime(s.now(), s.location)
+	currentWeekStart := mondayOfWeek(today, s.location)
+	nextWeekEnd := currentWeekStart.AddDays(13, s.location)
+	selected := today
+	if requested != "" {
+		parsed, err := domain.ParseCivilDate(requested)
+		if err == nil && !parsed.Time(s.location).Before(currentWeekStart.Time(s.location)) && !parsed.Time(s.location).After(nextWeekEnd.Time(s.location)) {
+			selected = parsed
+		}
+	}
+	windowEnd := nextWeekEnd
+	stripStart := selected
+	if stripStart.AddDays(7, s.location).Time(s.location).After(windowEnd.Time(s.location)) {
+		stripStart = windowEnd.AddDays(-7, s.location)
+	}
+	through := stripStart.AddDays(7, s.location)
+	data, err := s.store.LoadAnonymousTimetable(ctx, stripStart, through)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard := Dashboard{SelectedDate: selected.String()}
+	dashboard.DateChoices = dateChoices(today, selected, s.location)
+	if mondayOfWeek(selected, s.location) != currentWeekStart {
+		dashboard.PreviousDate = today.String()
+	} else {
+		dashboard.NextDate = currentWeekStart.AddDays(7, s.location).String()
+	}
+	var selectedDay Day
+	for date := stripStart; !date.Time(s.location).After(through.Time(s.location)); date = date.AddDays(1, s.location) {
+		localTime := date.Time(s.location)
+		day := Day{Date: date.String(), DayName: localTime.Format("Mon"), DateLabel: localTime.Format("2 Jan"), DateShort: localTime.Format("02/01"), Today: date == today, Selected: date == selected}
+		day.Social = socialOnDate(data.Social, date, s.location)
+		for minute := 1020; minute < 1320; minute += 30 {
+			interval, _ := domain.NewInterval(minute, minute+30)
+			one := courtState(data.Weekly, data.OneOffs, date, 1, interval, s.location)
+			two := courtState(data.Weekly, data.OneOffs, date, 2, interval, s.location)
+			count := attendanceCount(data.Attendance, date.String(), interval)
+			band, class := turnoutBand(count)
+			day.Slots = append(day.Slots, Slot{StartMinute: minute, TimeLabel: minuteLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open")})
+		}
+		dashboard.Days = append(dashboard.Days, day)
+		if day.Selected {
+			selectedDay = day
+		}
+	}
+	for minute := 600; minute <= 1320; minute += 60 {
+		end := minute + 60
+		if minute == 1320 {
+			end = minute + 30
+		}
+		interval, _ := domain.NewInterval(minute, end)
+		one := courtState(data.Weekly, data.OneOffs, selected, 1, interval, s.location)
+		two := courtState(data.Weekly, data.OneOffs, selected, 2, interval, s.location)
+		count := attendanceCount(data.Attendance, selected.String(), interval)
+		band, class := turnoutBand(count)
+		dashboard.DesktopSlots = append(dashboard.DesktopSlots, Slot{StartMinute: minute, TimeLabel: hourLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open")})
+	}
+	for slotIndex := 0; len(dashboard.Days) > 0 && slotIndex < len(dashboard.Days[0].Slots); slotIndex++ {
+		row := TimetableRow{TimeLabel: dashboard.Days[0].Slots[slotIndex].TimeLabel}
+		for _, day := range dashboard.Days {
+			row.Cells = append(row.Cells, TimetableCell{Day: day, Slot: day.Slots[slotIndex]})
+		}
+		dashboard.Rows = append(dashboard.Rows, row)
+	}
+	if minute, err := strconv.Atoi(requestedMinute); err == nil && selectedDay.Date != "" {
+		detailSlots := selectedDay.Slots
+		if minute%60 == 0 {
+			detailSlots = dashboard.DesktopSlots
+		}
+		for _, slot := range detailSlots {
+			if slot.StartMinute == minute {
+				dashboard.Detail = &IntervalDetail{DateLabel: selectedDay.DayName + " " + selectedDay.DateLabel, Date: selectedDay.Date, TimeLabel: slot.TimeLabel, Count: slot.Count, Band: slot.Band, CourtOne: slot.CourtOne, CourtTwo: slot.CourtTwo, ReducedCapacity: slot.ReducedCapacity}
+				break
+			}
+		}
+	}
+	return dashboard, nil
+}
+
+func dateChoices(today, selected domain.CivilDate, location *time.Location) []DateChoice {
+	weekStart := mondayOfWeek(selected, location)
+	var choices []DateChoice
+	for offset := 0; offset < 7; offset++ {
+		choice := dateChoice(weekStart.AddDays(offset, location), today, selected, location)
+		choice.Today = false
+		choices = append(choices, choice)
+	}
+	return choices
+}
+
+func mondayOfWeek(date domain.CivilDate, location *time.Location) domain.CivilDate {
+	return date.AddDays(1-isoWeekday(date.Weekday(location)), location)
+}
+
+func dateChoice(date, today, selected domain.CivilDate, location *time.Location) DateChoice {
+	localTime := date.Time(location)
+	return DateChoice{Date: date.String(), DayName: localTime.Format("Mon"), DateShort: localTime.Format("02/01"), Today: date == today, Selected: date == selected}
+}
+
+func socialOnDate(rows []sqlcdb.SocialSession, date domain.CivilDate, location *time.Location) bool {
+	iso := isoWeekday(date.Weekday(location))
+	for _, row := range rows {
+		if int64(iso) == row.IsoWeekday && date.String() >= row.EffectiveStartDate && (!row.EffectiveEndDate.Valid || date.String() <= row.EffectiveEndDate.String) {
+			return true
+		}
+	}
+	return false
+}
+
+func courtState(weekly []sqlcdb.WeeklySeries, oneOffs []sqlcdb.OneOffEvent, date domain.CivilDate, court int64, interval domain.Interval, location *time.Location) CourtState {
+	status := "lights_off"
+	title := ""
+	priority := 1
+	for _, row := range weekly {
+		if row.Court != court || row.IsoWeekday != int64(isoWeekday(date.Weekday(location))) || date.String() < row.EffectiveStartDate || (row.EffectiveEndDate.Valid && date.String() > row.EffectiveEndDate.String) || !overlaps(row.StartMinute, row.EndMinute, interval) {
+			continue
+		}
+		if candidate := statusPriority(row.Kind); candidate >= priority {
+			status, title, priority = row.Kind, row.Title, candidate
+		}
+	}
+	for _, row := range oneOffs {
+		if row.Court == court && row.EventDate == date.String() && overlaps(row.StartMinute, row.EndMinute, interval) {
+			if candidate := statusPriority(row.Kind); candidate >= priority {
+				status, title, priority = row.Kind, row.Title, candidate
+			}
+		}
+	}
+	view := statusView(status)
+	if status == "coaching" && title == "Squads" {
+		view.Note = "Squads"
+	}
+	return view
+}
+
+func statusPriority(status string) int {
+	switch status {
+	case "closure", "lights_off":
+		return 4
+	case "competition", "coaching":
+		return 3
+	case "open":
+		return 2
+	default:
+		return 0
+	}
+}
+
+func statusView(status string) CourtState {
+	switch status {
+	case "open":
+		return CourtState{Label: "Open for play", Class: "open", Icon: "✓"}
+	case "competition":
+		return CourtState{Label: "Competition", Class: "competition", Icon: "◆"}
+	case "coaching":
+		return CourtState{Label: "Coaching", Class: "coaching", Icon: "◆"}
+	case "closure":
+		return CourtState{Label: "Other closure", Class: "closed", Icon: "×"}
+	default:
+		return CourtState{Label: "Lights off", Class: "closed", Icon: "×"}
+	}
+}
+
+func attendanceCount(rows []sqlcdb.ListAnonymousAttendanceIntervalsRow, date string, interval domain.Interval) int {
+	count := 0
+	for _, row := range rows {
+		if row.AttendanceDate == date && int(row.StartMinute) < interval.EndMinute && int(row.EndMinute) > interval.StartMinute {
+			count++
+		}
+	}
+	return count
+}
+
+func turnoutBand(count int) (string, string) {
+	switch {
+	case count == 0:
+		return "Empty", "empty"
+	case count <= 4:
+		return "Players attending", "players"
+	case count <= 9:
+		return "Good turnout", "good"
+	default:
+		return "Crowded", "crowded"
+	}
+}
+
+func overlaps(start, end int64, interval domain.Interval) bool {
+	return int(start) < interval.EndMinute && int(end) > interval.StartMinute
+}
+func isoWeekday(day time.Weekday) int {
+	if day == time.Sunday {
+		return 7
+	}
+	return int(day)
+}
+func minuteLabel(minute int) string {
+	return time.Date(2000, 1, 1, minute/60, minute%60, 0, 0, time.UTC).Format("3:04 pm")
+}
+
+func hourLabel(minute int) string {
+	return time.Date(2000, 1, 1, minute/60, minute%60, 0, 0, time.UTC).Format("15:04")
+}
+
+func (s Slot) AccessibleLabel(day Day) string {
+	return fmt.Sprintf("%s %s, %s, %d planned attendees, %s. Court 1: %s. Court 2: %s.", day.DayName, day.DateLabel, s.TimeLabel, s.Count, s.Band, s.CourtOne.Label, s.CourtTwo.Label)
+}
