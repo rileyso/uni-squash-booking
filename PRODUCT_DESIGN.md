@@ -146,7 +146,7 @@ Colour must not be the only status indicator. Every status also requires a text 
 
 ### Registering attendance
 
-- A signed-in member chooses a day, arrival time, and expected duration.
+- A signed-in member chooses a day, arrival time, and departure time; the interface also shows the resulting expected duration.
 - Time is selected in 30-minute increments.
 - An interval has a 30-minute minimum, cannot cross midnight, and cannot extend beyond that day's final playable light-off time.
 - Attendance uses half-open time intervals `[arrival, departure)`: a member leaving at 19:00 does not count in the 19:00-19:30 turnout bucket.

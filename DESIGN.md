@@ -104,8 +104,9 @@ earlier structure remains as historical context only.
   navy selected pill remains white for sufficient contrast.
 - Each week page contains only seven normal Monday–Sunday date pills, including
   today's ordinary weekday/date label and elapsed days on the current page.
-  Selecting a date does not roll the visible choices; previous/next arrows alone
-  change weeks. Navigation is bounded to those two weeks.
+  Selecting a date does not roll the visible choices. Previous/next arrows move
+  one day at a time; crossing a Monday/Sunday boundary changes the visible week.
+  Navigation is bounded to those two weeks.
 - Previous/next controls use compact long-shaft SVG arrows with angled heads,
   matching the approved screenshot shape while inheriting accessible state and
   hover colours.
@@ -140,6 +141,13 @@ earlier structure remains as historical context only.
   pill has no calendar logo. Monday Pennant training has no separate purple
   operational overlay in the current synthetic presentation.
   Key swatches are small solid circles rather than outlined squares.
+- A bordered seven-column `Social` schedule sits below the status key and follows
+  the selected Monday–Sunday week. Its neutral date headings receive no selected
+  highlight. Tuesday displays `4:00pm–6:00pm`; Friday displays
+  `3:00pm–6:00pm`, derived from authoritative social-session rows.
+- Narrow desktop windows with a mouse or trackpad retain the horizontal calendar
+  instead of hiding it at the mobile breakpoint. Non-hover touch devices retain
+  the selected-day mobile timetable.
   Court cells omit visible `Open for play` and `Lights off` text to reduce row
   height; their status symbols remain visible and full labels remain available
   programmatically. Other surfaces retain the approved full status vocabulary.
@@ -229,7 +237,7 @@ Decision: seven day columns with time running vertically.
 
 - Desktop opens a right-side panel while the weekly timetable remains visible and the chosen interval stays highlighted.
 - Mobile opens a full-screen sheet rather than a cramped modal.
-- Step 1 selects date, 30-minute arrival, and duration constrained by current venue availability.
+- Step 1 selects date, 30-minute arrival, and departure constrained by current venue availability. An accessible two-handle visual range is synchronised with explicit arrival and departure fields, and the resulting duration is shown in text.
 - Step 2 presents a short review containing date, arrival, departure, venue-wide wording, current turnout, reduced-capacity or schedule warnings, public-name notice, and the primary `Confirm attendance` action.
 - `Back` returns to the editable fields without losing values. `Close` exits without creating a plan and returns focus to the trigger.
 - Confirmation success closes the panel or sheet, updates the timetable and `Your plans`, and announces the result through an accessible live region.

@@ -37,4 +37,5 @@ func (s *Service) Ready(ctx context.Context) error {
 	return s.store.Ready(ctx, s.config.RecoveryGeneration)
 }
 
-func (s *Service) Synthetic() bool { return s.config.Synthetic }
+func (s *Service) Synthetic() bool     { return s.config.Synthetic }
+func (s *Service) SecureCookies() bool { return s.config.Environment == config.Production }

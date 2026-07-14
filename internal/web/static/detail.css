@@ -7,7 +7,7 @@
 .interval-detail {
   position: fixed;
   z-index: 10;
-  right: 1.5rem;
+  left: 16rem;
   bottom: 1.5rem;
   width: min(25rem, calc(100vw - 3rem));
   padding: 1.5rem;
@@ -22,9 +22,18 @@
 .interval-detail dd { margin: 0; text-align: right; }
 .detail-close { float: right; min-width: 44px; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: .5rem; color: var(--navy); text-decoration: none; font-size: 1.5rem; }
 .capacity-warning { color: var(--warning); font-weight: 700; }
+.primary-action { min-height: 44px; display: flex; align-items: center; justify-content: center; padding: .65rem 1rem; border-radius: .4rem; background: var(--info); color: #fff; text-decoration: none; font-weight: 700; }
+.primary-action:hover { color: #fff; background: #1746b0; }
+.your-plans { max-width: 910px; margin: 1rem auto; }
+.your-plans h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
+.your-plans > div { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.your-plans > div > span:last-child { display: flex; align-items: center; gap: .75rem; }
+.your-plans form,.account-state form { display: inline; margin: 0; }
+.your-plans button,.account-state button { min-height: 44px; border: 0; background: transparent; color: var(--danger); text-decoration: underline; cursor: pointer; }
 
 @media (max-width: 880px) {
   .interval-detail {
+    left: 0;
     right: 0;
     bottom: 0;
     width: 100%;
@@ -35,6 +44,7 @@
 }
 
 /* Selected-day horizontal desktop timetable. */
+.date-navigation-container { width: 100%; container: date-navigation / inline-size; }
 .date-navigation { width: fit-content; max-width: 100%; display: flex; align-items: center; gap: .65rem; min-height: 57px; padding: .75rem; border: 1px solid var(--border); border-radius: .75rem; background: #fff; overflow: hidden; font-family: inherit; font-size: .82rem; }
 .date-anchor { min-width: 9.8rem; min-height: 32px; display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; padding: 0 .15rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--navy); font-variant-numeric: tabular-nums; }
 .date-anchor a, .date-anchor > span { min-width: 32px; min-height: 32px; display: grid; place-items: center; color: #64748b; text-decoration: none; font-size: 1.25rem; }
@@ -58,22 +68,23 @@
 .turnout-count { position: absolute; z-index: 5; top: calc(100% + 5px); left: 50%; min-width: 64px; min-height: 22px; display: flex; align-items: center; justify-content: center; padding: .1rem .65rem; border: 1px solid var(--navy); border-radius: .35rem; background: #fff; box-shadow: 0 3px 8px rgba(16, 42, 67, .16); color: var(--navy); text-decoration: none; font-size: .72rem; opacity: 0; pointer-events: none; transform: translateX(-50%); }
 .turnout-count::before { content: ""; position: absolute; left: 50%; top: -5px; width: 8px; height: 8px; border-top: 1px solid var(--navy); border-left: 1px solid var(--navy); background: #fff; transform: translateX(-50%) rotate(45deg); }
 .turnout-count:focus-visible { opacity: 1; }
-.horizontal-calendar:has(tbody td:nth-child(2):hover) tbody tr:last-child td:nth-child(2) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(3):hover) tbody tr:last-child td:nth-child(3) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(4):hover) tbody tr:last-child td:nth-child(4) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(5):hover) tbody tr:last-child td:nth-child(5) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(6):hover) tbody tr:last-child td:nth-child(6) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(7):hover) tbody tr:last-child td:nth-child(7) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(8):hover) tbody tr:last-child td:nth-child(8) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(9):hover) tbody tr:last-child td:nth-child(9) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(10):hover) tbody tr:last-child td:nth-child(10) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(11):hover) tbody tr:last-child td:nth-child(11) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(12):hover) tbody tr:last-child td:nth-child(12) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(13):hover) tbody tr:last-child td:nth-child(13) .turnout-count,
-.horizontal-calendar:has(tbody td:nth-child(14):hover) tbody tr:last-child td:nth-child(14) .turnout-count { opacity: 1; }
+.horizontal-calendar:has(tbody td:nth-child(2) .court-status.open:hover) tbody tr:last-child td:nth-child(2) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(3) .court-status.open:hover) tbody tr:last-child td:nth-child(3) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(4) .court-status.open:hover) tbody tr:last-child td:nth-child(4) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(5) .court-status.open:hover) tbody tr:last-child td:nth-child(5) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(6) .court-status.open:hover) tbody tr:last-child td:nth-child(6) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(7) .court-status.open:hover) tbody tr:last-child td:nth-child(7) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(8) .court-status.open:hover) tbody tr:last-child td:nth-child(8) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(9) .court-status.open:hover) tbody tr:last-child td:nth-child(9) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(10) .court-status.open:hover) tbody tr:last-child td:nth-child(10) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(11) .court-status.open:hover) tbody tr:last-child td:nth-child(11) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(12) .court-status.open:hover) tbody tr:last-child td:nth-child(12) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(13) .court-status.open:hover) tbody tr:last-child td:nth-child(13) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(14) .court-status.open:hover) tbody tr:last-child td:nth-child(14) .turnout-count { opacity: 1; }
 .turnout-count.players, .turnout-count.good, .turnout-count.crowded { background: #fff; }
-.court-status { width: 64px; min-height: 31px; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 3px solid var(--danger); background: #fff; line-height: 1; }
+.court-status { width: 64px; min-height: 31px; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 3px solid var(--danger); background: #fff; color: var(--navy); text-decoration: none; line-height: 1; }
 .court-status.open { border-color: var(--positive); }
+.court-status.open:hover { background: #ecfdf3; }
 .court-status.closed { background-image: repeating-linear-gradient(135deg, transparent 0, transparent 5px, rgba(180, 35, 24, .12) 5px, rgba(180, 35, 24, .12) 7px); }
 .court-status.competition, .court-status.coaching { border-color: var(--special); }
 .court-status small { font-size: .72rem; font-weight: 600; line-height: 1; white-space: nowrap; }
@@ -83,16 +94,55 @@
 .key-swatch.lights-off { background: var(--danger); }
 .key-swatch.squads { background: var(--special); }
 .key-swatch.open { background: var(--positive); }
+.social-schedule { width: 910px; max-width: 100%; margin-top: 1rem; }
+.social-schedule h3 { margin: 0 0 .4rem; font-size: .9rem; text-transform: uppercase; letter-spacing: .04em; }
+.social-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--border); background: #fff; }
+.social-grid article { min-width: 0; border-right: 1px solid var(--border); }
+.social-grid article:last-child { border-right: 0; }
+.social-grid header { min-height: 30px; display: grid; place-items: center; padding: .25rem; border-bottom: 1px solid var(--border); background: #f8fafc; font-size: .72rem; font-weight: 700; }
+.social-grid article > div { min-height: 62px; display: grid; align-content: center; justify-items: center; padding: .35rem; text-align: center; }
+.social-grid strong { font-size: .76rem; font-variant-numeric: tabular-nums; }
+.social-grid span { font-size: .7rem; color: var(--slate); }
 
 @media (max-width: 880px) {
-  .date-navigation { width: 100%; display: flex; gap: .5rem; border: 1px solid var(--border); background: #fff; overflow-x: auto; font-size: .82rem; }
-  .date-anchor { display: grid; position: sticky; left: 0; z-index: 2; }
+  .date-navigation { width: 100%; max-width: 100%; display: flex; gap: .5rem; border: 1px solid var(--border); background: #fff; overflow-x: auto; font-size: .82rem; }
+  .date-anchor { display: grid; position: sticky; left: 0; z-index: 2; flex: 0 0 auto; }
   .date-strip { display: flex; gap: .35rem; min-width: 0; }
   .date-strip a { min-width: 7rem; min-height: 44px; border: 1px solid var(--border); border-radius: 999px; }
   .date-strip a[aria-current=date] { border-color: var(--navy); box-shadow: none; }
+  .page-header { min-width: 0; flex-wrap: wrap; }
+  .page-header > div:first-child { min-width: 0; }
+  .page-header h1 { overflow-wrap: anywhere; }
+  .account-state { max-width: 100%; }
+  .mobile-timetable, .slot-list, .slot-list li, .turnout, .court-rails { width: 100%; max-width: 100%; min-width: 0; }
+  .mobile-court-headings { width: 100%; display: grid; grid-template-columns: 3.9rem repeat(2, minmax(0, 1fr)); gap: .15rem; padding: 0 .35rem .25rem; color: var(--slate); text-align: center; font-size: .72rem; }
+  .slot-list li { min-height: 66px; grid-template-columns: 3.9rem minmax(0, 1fr); gap: .2rem .35rem; padding: .25rem .35rem; }
+  .slot-list time { padding-top: .2rem; font-size: .76rem; line-height: 1.15; }
+  .slot-list .turnout, .slot-list .court-rails { grid-column: 2; }
+  .slot-list .turnout { min-height: 44px; display: flex; align-items: center; padding: .15rem .3rem; font-size: .76rem; line-height: 1.1; }
+  .slot-list .turnout strong { width: 100%; }
+  .slot-list .court-rails { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slot-list .court-rails { gap: .15rem; margin-top: 0; }
+  .slot-list .court-rails span { min-height: 17px; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .slot-list .court-rails span.closed { background-image: repeating-linear-gradient(135deg, transparent 0, transparent 5px, rgba(180, 35, 24, .12) 5px, rgba(180, 35, 24, .12) 7px); }
+  .slot-list .court-rails small { font-size: .65rem; font-weight: 600; line-height: 1; }
+  .your-plans { width: 100%; max-width: 100%; }
+  .your-plans > div { align-items: flex-start; flex-direction: column; gap: .25rem; padding: .5rem 0; }
+  .your-plans > div > span { max-width: 100%; }
+  .your-plans > div > span:last-child { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+  .calendar-key { max-width: 100%; gap: .5rem 1rem; }
+  .social-schedule, .social-grid { width: 100%; max-width: 100%; }
+  .social-grid header, .social-grid article > div { padding-inline: .15rem; overflow-wrap: anywhere; }
 }
 
 @media (hover: none) {
   .turnout-count { position: static; min-height: 44px; border: 0; box-shadow: none; opacity: 1; pointer-events: auto; transform: none; }
   .turnout-count::before { display: none; }
+}
+
+@container date-navigation (max-width: 600px) {
+  .date-navigation { width: 100%; flex-direction: column; align-items: stretch; gap: .5rem; padding: .5rem; overflow: visible; }
+  .date-anchor { position: static; width: 7rem; min-width: 7rem; justify-self: center; align-self: center; }
+  .date-strip { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, 7rem); justify-content: center; gap: .35rem; overflow: visible; }
+  .date-strip a { width: 7rem; min-width: 0; }
 }

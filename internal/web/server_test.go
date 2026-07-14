@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,6 +13,62 @@ import (
 	"github.com/rileyso/uni-squash-booking/internal/config"
 	"github.com/rileyso/uni-squash-booking/internal/sqlite"
 )
+
+func TestAccountCreationPreservesAttendanceIntent(t *testing.T) {
+	server := newTestServer(t)
+	form := url.Values{"display_name": {"Alex Example"}, "pin": {"2468"}, "pin_confirm": {"2468"}, "member_status": {"member"}, "privacy_ack": {"yes"}, "intent_date": {"2026-07-15"}, "intent_start": {"900"}}
+	request := httptest.NewRequest(http.MethodPost, "/accounts", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusSeeOther || !strings.HasPrefix(response.Header().Get("Location"), "/account-created?") {
+		t.Fatalf("status=%d location=%q", response.Code, response.Header().Get("Location"))
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("member session cookie missing")
+	}
+	created := httptest.NewRequest(http.MethodGet, response.Header().Get("Location"), nil)
+	created.AddCookie(cookies[0])
+	shown := httptest.NewRecorder()
+	server.Handler().ServeHTTP(shown, created)
+	if shown.Code != http.StatusOK || !strings.Contains(shown.Body.String(), "alexexample#") || !strings.Contains(shown.Body.String(), "/attendance/new?") {
+		t.Fatalf("account result did not preserve intent: %s", shown.Body.String())
+	}
+}
+
+func TestAuthenticatedAttendanceReviewAndConfirmation(t *testing.T) {
+	server := newTestServer(t)
+	session, err := server.app.CreateAccount(context.Background(), "Flow Tester", "8642", "member", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := &http.Cookie{Name: sessionCookie, Value: session.Token}
+	form := url.Values{"date": {"2026-07-15"}, "start": {"900"}, "end": {"1080"}, "csrf": {session.CSRF}}
+	reviewRequest := httptest.NewRequest(http.MethodPost, "/attendance/review", strings.NewReader(form.Encode()))
+	reviewRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reviewRequest.AddCookie(cookie)
+	review := httptest.NewRecorder()
+	server.Handler().ServeHTTP(review, reviewRequest)
+	if review.Code != http.StatusOK || !strings.Contains(review.Body.String(), "Review attendance") || !strings.Contains(review.Body.String(), "3 hours") {
+		t.Fatalf("review status=%d body=%s", review.Code, review.Body.String())
+	}
+	confirmRequest := httptest.NewRequest(http.MethodPost, "/attendance", strings.NewReader(form.Encode()))
+	confirmRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	confirmRequest.AddCookie(cookie)
+	confirm := httptest.NewRecorder()
+	server.Handler().ServeHTTP(confirm, confirmRequest)
+	if confirm.Code != http.StatusSeeOther {
+		t.Fatalf("confirm status=%d body=%s", confirm.Code, confirm.Body.String())
+	}
+	dashboardRequest := httptest.NewRequest(http.MethodGet, "/?date=2026-07-15", nil)
+	dashboardRequest.AddCookie(cookie)
+	dashboard := httptest.NewRecorder()
+	server.Handler().ServeHTTP(dashboard, dashboardRequest)
+	if !strings.Contains(dashboard.Body.String(), "Your plans") || !strings.Contains(dashboard.Body.String(), "Flow Tester") {
+		t.Fatalf("dashboard missing saved plan: %s", dashboard.Body.String())
+	}
+}
 
 func newTestServer(t *testing.T) *Server {
 	t.Helper()
@@ -53,14 +110,21 @@ func TestFoundationRoutesAndSecurityHeaders(t *testing.T) {
 	}
 }
 
-func TestSyntheticMarkerAndNoIdentityRoutes(t *testing.T) {
+func TestSyntheticMarkerAndIdentityRoutes(t *testing.T) {
 	server := newTestServer(t)
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
 	if !strings.Contains(response.Body.String(), "Synthetic development data only") {
 		t.Fatal("synthetic marker missing")
 	}
-	for _, path := range []string{"/accounts/new", "/attendance", "/attendees", "/admin"} {
+	for _, path := range []string{"/accounts/new", "/sign-in"} {
+		response = httptest.NewRecorder()
+		server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("GET %s status = %d, want 200", path, response.Code)
+		}
+	}
+	for _, path := range []string{"/attendees", "/admin"} {
 		response = httptest.NewRecorder()
 		server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
 		if response.Code != http.StatusNotFound {
@@ -82,6 +146,12 @@ func TestAnonymousTimetableContainsStatusTextAndNoNames(t *testing.T) {
 	if strings.Contains(body, "Player 1") || strings.Contains(body, "synthetic0001") {
 		t.Fatal("anonymous timetable exposed an identity")
 	}
+	if strings.Contains(body, "Official social") {
+		t.Fatal("official social label is rendered")
+	}
+	if strings.Contains(body, "> C1 Open for play<") || strings.Contains(body, "> C2 Open for play<") {
+		t.Fatal("mobile court rails repeat verbose court labels")
+	}
 }
 
 func TestDesktopTimetableUsesSelectedDayHorizontalLayout(t *testing.T) {
@@ -96,6 +166,41 @@ func TestDesktopTimetableUsesSelectedDayHorizontalLayout(t *testing.T) {
 	}
 	if strings.Count(body, `href="/?date=`) < 8 {
 		t.Fatal("date navigation does not contain eight date choices")
+	}
+}
+
+func TestMobileTimetableContainsThirteenHourlyIntervals(t *testing.T) {
+	server := newTestServer(t)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := response.Body.String()
+	start := strings.Index(body, `class="mobile-timetable"`)
+	if start < 0 {
+		t.Fatal("mobile timetable markup missing")
+	}
+	end := strings.Index(body[start:], `class="calendar-key"`)
+	if end < 0 {
+		t.Fatal("mobile timetable boundary missing")
+	}
+	mobile := body[start : start+end]
+	if strings.Count(mobile, "<li>") != 13 || !strings.Contains(mobile, ">10:00 am</time>") || !strings.Contains(mobile, ">10:00 pm</time>") {
+		t.Fatalf("mobile timetable does not contain 13 hourly cells from 10 am through 10 pm")
+	}
+	if !strings.Contains(mobile, `<strong>Court 1</strong><strong>Court 2</strong>`) {
+		t.Fatal("mobile timetable is missing aligned court headings")
+	}
+}
+
+func TestOpenCourtCellsShowIntervalDetailsWithoutPlusVisual(t *testing.T) {
+	server := newTestServer(t)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/?date=2026-07-14", nil))
+	body := response.Body.String()
+	if !strings.Contains(body, `class="court-status open" href="/?date=2026-07-14&amp;time=960"`) {
+		t.Fatal("open court cell does not link to interval details")
+	}
+	if strings.Contains(body, `class="attendance-add"`) {
+		t.Fatal("blue plus attendance visual is still present")
 	}
 }
 
