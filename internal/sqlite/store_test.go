@@ -46,7 +46,7 @@ func TestSyntheticFixturesFeedIdentityFreeTimetable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(data.Weekly) != 14 || len(data.Social) != 3 || len(data.OneOffs) != 2 || len(data.Attendance) != 17 {
+	if len(data.Weekly) != 18 || len(data.Social) != 2 || len(data.OneOffs) != 0 || len(data.Attendance) != 17 {
 		t.Fatalf("unexpected fixture dimensions: weekly=%d social=%d oneOffs=%d attendance=%d", len(data.Weekly), len(data.Social), len(data.OneOffs), len(data.Attendance))
 	}
 }

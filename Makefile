@@ -1,7 +1,7 @@
 GO ?= /home/riso7312/.local/go/bin/go
 SQLC ?= /home/riso7312/.local/bin/sqlc
 
-.PHONY: generate fmt test race vet coverage check run
+.PHONY: generate fmt test race vet coverage check run dev
 
 generate:
 	$(SQLC) generate
@@ -26,3 +26,6 @@ check: generate fmt test race vet coverage
 
 run:
 	GOCACHE=/tmp/syd-squash-go-cache APP_ENV=development $(GO) run ./cmd/web
+
+dev:
+	GOCACHE=/tmp/syd-squash-go-cache GO_BINARY=$(GO) $(GO) run ./cmd/dev

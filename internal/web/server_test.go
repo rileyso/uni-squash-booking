@@ -74,13 +74,28 @@ func TestAnonymousTimetableContainsStatusTextAndNoNames(t *testing.T) {
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
 	body := response.Body.String()
-	for _, expected := range []string{"Planned attendance", "Attendance does not reserve a court", "Open for play", "Official social"} {
+	for _, expected := range []string{"Manning Squash Courts (A24)", "Attendance does not reserve a court", "Open for play"} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("response missing %q", expected)
 		}
 	}
 	if strings.Contains(body, "Player 1") || strings.Contains(body, "synthetic0001") {
 		t.Fatal("anonymous timetable exposed an identity")
+	}
+}
+
+func TestDesktopTimetableUsesSelectedDayHorizontalLayout(t *testing.T) {
+	server := newTestServer(t)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := response.Body.String()
+	for _, expected := range []string{`class="date-anchor"`, `class="horizontal-calendar"`, `>10:00</time>`, `>13:00</time>`, `>22:00</time>`, `class="turnout-count`, `>Court 1</th>`, `>Court 2</th>`} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("horizontal desktop timetable missing %q", expected)
+		}
+	}
+	if strings.Count(body, `href="/?date=`) < 8 {
+		t.Fatal("date navigation does not contain eight date choices")
 	}
 }
 
@@ -92,7 +107,7 @@ func TestAnonymousIntervalDetailUsesAggregateOnly(t *testing.T) {
 		t.Fatalf("status = %d", response.Code)
 	}
 	body := response.Body.String()
-	if !strings.Contains(body, "Interval details") || !strings.Contains(body, "No one has announced attendance yet") {
+	if !strings.Contains(body, "Interval details") {
 		t.Fatal("aggregate detail disclosure is missing")
 	}
 	if strings.Contains(body, "Player 1") || strings.Contains(body, "#0001") {

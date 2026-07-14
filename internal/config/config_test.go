@@ -15,7 +15,7 @@ func TestDevelopmentIsSyntheticAndLoopbackOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !config.Synthetic || config.Environment != Development || config.Address != "127.0.0.1:8080" {
+	if !config.Synthetic || config.Environment != Development || config.Address != "127.0.0.1:18080" {
 		t.Fatalf("unexpected config: %#v", config)
 	}
 	if _, err := Load(env(map[string]string{"APP_ENV": "test", "APP_ADDR": "0.0.0.0:8080"})); err == nil {

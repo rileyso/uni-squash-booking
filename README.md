@@ -16,6 +16,8 @@ A venue-wide turnout forecast for the Sydney University Squash Club. Members ann
 
 Product discovery, interface design, and engineering planning are approved. Synthetic-data implementation is in progress; public identity capabilities and a real-data pilot remain committee-gated.
 
+![Synthetic attendance timetable](docs/images/attendance-timetable.png)
+
 ## Local development
 
 The development service is deliberately synthetic-only and binds to loopback. The Makefile uses the checksum-verified user-local Go toolchain, so run it with:
@@ -24,7 +26,17 @@ The development service is deliberately synthetic-only and binds to loopback. Th
 make run
 ```
 
-Then open `http://127.0.0.1:8080`. The service creates a disposable database under `data/`, loads obvious synthetic timetable fixtures, and never registers member identity routes in the current milestone.
+Then open `http://127.0.0.1:18080`. The service creates a disposable database under `data/`, loads obvious synthetic timetable fixtures, and never registers member identity routes in the current milestone.
+
+For development with automatic backend restarts, run:
+
+```sh
+make dev
+```
+
+The development watcher restarts the loopback-only synthetic Go service after
+changes to Go, HTML, CSS, SQL, JSON, or YAML source files. Refresh the browser
+after the restart to request the rebuilt page.
 
 Run all generation, tests, race checks, vetting, and the 80% project-owned coverage gate with:
 

@@ -33,3 +33,66 @@
     border-radius: .75rem .75rem 0 0;
   }
 }
+
+/* Selected-day horizontal desktop timetable. */
+.date-navigation { width: fit-content; max-width: 100%; display: flex; align-items: center; gap: .65rem; min-height: 57px; padding: .75rem; border: 1px solid var(--border); border-radius: .75rem; background: #fff; overflow: hidden; font-family: inherit; font-size: .82rem; }
+.date-anchor { min-width: 9.8rem; min-height: 32px; display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; padding: 0 .15rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--navy); font-variant-numeric: tabular-nums; }
+.date-anchor a, .date-anchor > span { min-width: 32px; min-height: 32px; display: grid; place-items: center; color: #64748b; text-decoration: none; font-size: 1.25rem; }
+.date-arrow { width: 16px; height: 12px; overflow: visible; }
+.date-arrow path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+.date-anchor strong { text-align: center; white-space: nowrap; font-weight: 500; }
+.date-strip { display: flex; align-items: center; gap: .65rem; min-width: 0; overflow: hidden; }
+.date-strip a { min-width: 5.6rem; min-height: 32px; display: grid; place-items: center; padding: .25rem .75rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--navy); text-align: center; text-decoration: none; }
+.date-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.date-strip a[aria-current=date] { border-color: var(--navy); background: var(--navy); color: #fff; box-shadow: none; }
+.date-navigation a:hover, main a:hover, main button:hover { color: var(--info); }
+.date-strip a[aria-current=date]:hover { color: #fff; }
+.desktop-timetable { width: fit-content; max-width: 100%; margin-inline: 0 auto; overflow: visible; }
+.horizontal-calendar { width: calc(65px * 14); min-width: calc(65px * 14); margin-inline: auto; table-layout: fixed; }
+.horizontal-calendar th, .horizontal-calendar td { width: 65px; min-width: 65px; }
+.horizontal-calendar th:first-child { position: sticky; left: 0; z-index: 3; width: 65px; min-width: 65px; background: #f8fafc; }
+.horizontal-calendar thead th { position: relative; height: 32px; padding: .1rem; text-align: center; font-variant-numeric: tabular-nums; }
+.horizontal-calendar thead time { display: block; }
+.horizontal-calendar tbody th { padding: .35rem; text-align: center; }
+.horizontal-calendar td { position: relative; height: 32px; padding: 0; vertical-align: middle; }
+.turnout-count { position: absolute; z-index: 5; top: calc(100% + 5px); left: 50%; min-width: 64px; min-height: 22px; display: flex; align-items: center; justify-content: center; padding: .1rem .65rem; border: 1px solid var(--navy); border-radius: .35rem; background: #fff; box-shadow: 0 3px 8px rgba(16, 42, 67, .16); color: var(--navy); text-decoration: none; font-size: .72rem; opacity: 0; pointer-events: none; transform: translateX(-50%); }
+.turnout-count::before { content: ""; position: absolute; left: 50%; top: -5px; width: 8px; height: 8px; border-top: 1px solid var(--navy); border-left: 1px solid var(--navy); background: #fff; transform: translateX(-50%) rotate(45deg); }
+.turnout-count:focus-visible { opacity: 1; }
+.horizontal-calendar:has(tbody td:nth-child(2):hover) tbody tr:last-child td:nth-child(2) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(3):hover) tbody tr:last-child td:nth-child(3) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(4):hover) tbody tr:last-child td:nth-child(4) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(5):hover) tbody tr:last-child td:nth-child(5) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(6):hover) tbody tr:last-child td:nth-child(6) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(7):hover) tbody tr:last-child td:nth-child(7) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(8):hover) tbody tr:last-child td:nth-child(8) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(9):hover) tbody tr:last-child td:nth-child(9) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(10):hover) tbody tr:last-child td:nth-child(10) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(11):hover) tbody tr:last-child td:nth-child(11) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(12):hover) tbody tr:last-child td:nth-child(12) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(13):hover) tbody tr:last-child td:nth-child(13) .turnout-count,
+.horizontal-calendar:has(tbody td:nth-child(14):hover) tbody tr:last-child td:nth-child(14) .turnout-count { opacity: 1; }
+.turnout-count.players, .turnout-count.good, .turnout-count.crowded { background: #fff; }
+.court-status { width: 64px; min-height: 31px; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 3px solid var(--danger); background: #fff; line-height: 1; }
+.court-status.open { border-color: var(--positive); }
+.court-status.closed { background-image: repeating-linear-gradient(135deg, transparent 0, transparent 5px, rgba(180, 35, 24, .12) 5px, rgba(180, 35, 24, .12) 7px); }
+.court-status.competition, .court-status.coaching { border-color: var(--special); }
+.court-status small { font-size: .72rem; font-weight: 600; line-height: 1; white-space: nowrap; }
+.calendar-key { width: fit-content; display: flex; flex-wrap: wrap; gap: 1rem; margin: .75rem 0 0; padding: 0; list-style: none; font-size: .78rem; }
+.calendar-key li { display: flex; align-items: center; gap: .35rem; }
+.key-swatch { width: .5rem; height: .5rem; display: inline-block; border: 0; border-radius: 50%; }
+.key-swatch.lights-off { background: var(--danger); }
+.key-swatch.squads { background: var(--special); }
+.key-swatch.open { background: var(--positive); }
+
+@media (max-width: 880px) {
+  .date-navigation { width: 100%; display: flex; gap: .5rem; border: 1px solid var(--border); background: #fff; overflow-x: auto; font-size: .82rem; }
+  .date-anchor { display: grid; position: sticky; left: 0; z-index: 2; }
+  .date-strip { display: flex; gap: .35rem; min-width: 0; }
+  .date-strip a { min-width: 7rem; min-height: 44px; border: 1px solid var(--border); border-radius: 999px; }
+  .date-strip a[aria-current=date] { border-color: var(--navy); box-shadow: none; }
+}
+
+@media (hover: none) {
+  .turnout-count { position: static; min-height: 44px; border: 0; box-shadow: none; opacity: 1; pointer-events: auto; transform: none; }
+  .turnout-count::before { display: none; }
+}

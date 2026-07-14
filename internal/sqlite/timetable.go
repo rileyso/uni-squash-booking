@@ -39,6 +39,11 @@ func (s *Store) LoadAnonymousTimetable(ctx context.Context, from, through domain
 }
 
 func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDate, location *time.Location) error {
+	weekday := int(today.Weekday(location))
+	if weekday == 0 {
+		weekday = 7
+	}
+	effectiveStart := today.AddDays(1-weekday, location).String()
 	transaction, err := s.writer.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin synthetic fixtures: %w", err)
@@ -46,9 +51,6 @@ func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDat
 	defer transaction.Rollback()
 	var loadedFor string
 	err = transaction.QueryRowContext(ctx, "SELECT loaded_for_date FROM synthetic_fixture_metadata WHERE singleton = 1").Scan(&loadedFor)
-	if err == nil && loadedFor == today.String() {
-		return transaction.Commit()
-	}
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("read synthetic fixture marker: %w", err)
 	}
@@ -57,25 +59,51 @@ func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDat
 			return fmt.Errorf("clear synthetic %s: %w", table, err)
 		}
 	}
-	for weekday := 1; weekday <= 7; weekday++ {
+	openHours := []struct {
+		weekday int
+		start   int
+		end     int
+	}{
+		{1, 960, 1320},
+		{2, 720, 840},
+		{2, 960, 1320},
+		{3, 870, 1320},
+		{4, 960, 1320},
+		{5, 900, 1200},
+		{6, 540, 900},
+		{7, 720, 1020},
+	}
+	for _, hours := range openHours {
 		for court := 1; court <= 2; court++ {
-			if _, err := transaction.ExecContext(ctx, `INSERT INTO weekly_series (court, kind, title, iso_weekday, start_minute, end_minute, effective_start_date) VALUES (?, 'open', 'Lights on', ?, 1020, 1320, ?)`, court, weekday, today.String()); err != nil {
+			if _, err := transaction.ExecContext(ctx, `INSERT INTO weekly_series (court, kind, title, iso_weekday, start_minute, end_minute, effective_start_date) VALUES (?, 'open', 'Lights on', ?, ?, ?, ?)`, court, hours.weekday, hours.start, hours.end, effectiveStart); err != nil {
 				return fmt.Errorf("insert synthetic light hours: %w", err)
 			}
 		}
 	}
-	for _, weekday := range []int{2, 5, 7} {
-		if _, err := transaction.ExecContext(ctx, `INSERT INTO social_sessions (iso_weekday, start_minute, end_minute, effective_start_date) VALUES (?, 1080, 1260, ?)`, weekday, today.String()); err != nil {
+	for _, session := range []struct {
+		weekday int
+		start   int
+		end     int
+	}{{2, 960, 1080}, {5, 900, 1080}} {
+		if _, err := transaction.ExecContext(ctx, `INSERT INTO social_sessions (iso_weekday, start_minute, end_minute, effective_start_date) VALUES (?, ?, ?, ?)`, session.weekday, session.start, session.end, effectiveStart); err != nil {
 			return fmt.Errorf("insert synthetic social session: %w", err)
 		}
 	}
-	competitionDate := today.AddDays(5, location)
-	if _, err := transaction.ExecContext(ctx, `INSERT INTO one_off_events (event_date, court, kind, title, start_minute, end_minute) VALUES (?, 2, 'competition', 'Synthetic competition', 1080, 1200)`, competitionDate.String()); err != nil {
-		return fmt.Errorf("insert synthetic competition: %w", err)
+	occupations := []struct {
+		weekday int
+		kind    string
+		title   string
+		start   int
+		end     int
+	}{
+		{6, "coaching", "Squads", 600, 690},
 	}
-	coachingDate := today.AddDays(2, location)
-	if _, err := transaction.ExecContext(ctx, `INSERT INTO one_off_events (event_date, court, kind, title, start_minute, end_minute) VALUES (?, 1, 'coaching', 'Synthetic coaching', 1140, 1260)`, coachingDate.String()); err != nil {
-		return fmt.Errorf("insert synthetic coaching: %w", err)
+	for _, occupation := range occupations {
+		for court := 1; court <= 2; court++ {
+			if _, err := transaction.ExecContext(ctx, `INSERT INTO weekly_series (court, kind, title, iso_weekday, start_minute, end_minute, effective_start_date) VALUES (?, ?, ?, ?, ?, ?, ?)`, court, occupation.kind, occupation.title, occupation.weekday, occupation.start, occupation.end, effectiveStart); err != nil {
+				return fmt.Errorf("insert synthetic court occupation: %w", err)
+			}
+		}
 	}
 	for member := 1; member <= 12; member++ {
 		code := fmt.Sprintf("%04d", member)

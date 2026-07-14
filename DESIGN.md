@@ -66,6 +66,90 @@ Location, contact, WhatsApp, and account controls remain discoverable but do not
 
 ## Approved Desktop Weekly Structure
 
+### Superseding desktop timetable layout — 14 July 2026
+
+This desktop layout supersedes the seven-day-column structure below. The
+earlier structure remains as historical context only.
+
+- Desktop shows one selected date in a stable-width horizontal timetable.
+  Narrowing the window scrolls the timetable instead of compressing its cells.
+- A nine-element date bar sits above it: one calendar-icon/selected-date cell
+  followed by eight consecutive date choices inside the 14-day window. Today is
+  labelled `Today`; the selected date uses text, border, and background emphasis.
+  Official-social badges do not appear inside this compact desktop date bar.
+- Time runs horizontally from 10 am through 10 pm at one-hour points. The server
+  retains authoritative 30-minute intervals for attendance and validation.
+- Each time header shows venue-wide turnout using only a people icon and exact
+  count visually. Its accessible name states that these are planned attendees.
+- Court 1 and Court 2 are the only two body rows. They are non-interactive
+  operational-status rows and must not resemble selectable or reservable courts.
+- Mobile retains the selected-day vertical timetable with 30-minute intervals.
+- The dashboard does not include a separate `How the timetable works` legend
+  bar. The non-reservation statement remains above the calendar, while status
+  meaning is communicated inline through text, icons, and accessible names.
+- The desktop date bar distributes all nine elements across the available main
+  width without its own scrollbar. Its leading selected-date cell has no icon.
+- The desktop date bar uses 70% of the available main width and an approximately
+  45px height. Mobile retains a full-width strip with 44px minimum targets.
+- The screenshot-approved date-bar treatment supersedes those dimensions: a
+  shrink-wrapped rounded rail contains a previous/date/next pill and eight date
+  pills. It uses the approved white, border, navy, and pale-blue selection
+  palette rather than the screenshot's dark and amber colours. Date logic and
+  accessible labels remain application-owned.
+- Date pills use the calendar's compact `0.82rem` IBM Plex typography at medium
+  weight. The selected date is a solid navy pill with white text and no inset
+  underline.
+- Date pills, arrows, and main-content interactive controls use the existing
+  `info` blue hover text without changing their container or pill borders. The
+  navy selected pill remains white for sufficient contrast.
+- Each week page contains only seven normal Monday–Sunday date pills, including
+  today's ordinary weekday/date label and elapsed days on the current page.
+  Selecting a date does not roll the visible choices; previous/next arrows alone
+  change weeks. Navigation is bounded to those two weeks.
+- Previous/next controls use compact long-shaft SVG arrows with angled heads,
+  matching the approved screenshot shape while inheriting accessible state and
+  hover colours.
+- The Court 1/Court 2 desktop calendar borrows only the public reference's
+  Alexandria grid dimensions: `65px × 32px` cells with `64px × 31px` inner
+  status content. Our one label plus thirteen hourly columns total `910px`; the
+  table is centered and scrolls rather than shrinking. Interactive turnout
+  counters retain the product-required 44px target.
+- The bordered timetable container shrink-wraps the desktop calendar instead of
+  stretching across unused main-content width. Its left edge aligns with the
+  date navigation bar, and it remains capped at the viewport width so narrow
+  layouts can scroll safely.
+- Desktop hourly headers show the numeric turnout counter without a people icon.
+  Counters use small plain text without a filled background or status underline.
+  Visible hourly labels use 24-hour values with minutes, such as `13:00`.
+  On pointer devices, a desktop counter appears when the matching Court 1 or
+  Court 2 cell is hovered, or when the counter is keyboard-focused. It remains
+  visible where hover is absent.
+  The revealed count uses a compact bordered tooltip anchored to the matching
+  Court 2 cell, with its pointer aimed at that cell's bottom edge. Zero-attendance
+  tooltips explicitly show `0`. The tooltip is flipped below the Court 2 row,
+  widened to 64px, and reduced to 22px high; its top pointer targets the bottom
+  of Court 2. The time header is 32px high.
+  Synthetic Saturday coaching cells include the medium-weight inline label
+  `Squads`; this wording is derived only from the `Squads` event title.
+  Coaching cells omit the special-event diamond because the compact label is the
+  clearer marker. The desktop timetable container permits visible overflow so
+  attendance tooltips can overlap the main canvas without creating an internal
+  scrollbar.
+- A compact key below the timetable pairs red with `Lights off`, purple with
+  `Squads`, and green with the approved `Open for play` wording. The date-control
+  pill has no calendar logo. Monday Pennant training has no separate purple
+  operational overlay in the current synthetic presentation.
+  Key swatches are small solid circles rather than outlined squares.
+  Court cells omit visible `Open for play` and `Lights off` text to reduce row
+  height; their status symbols remain visible and full labels remain available
+  programmatically. Other surfaces retain the approved full status vocabulary.
+  Desktop open/closed cells omit tick and cross symbols. Closed cells use a
+  subtle hatch so operational state is not communicated by colour alone;
+  special-event symbols may remain. Desktop date-bar type is 30% smaller than
+  the surrounding interface, while mobile retains the normal readable size.
+- The dashboard heading names the venue as `Manning Squash Courts (A24)`; planned
+  attendance remains the meaning of its turnout counts and accessible labels.
+
 Decision: seven day columns with time running vertically.
 
 ```text

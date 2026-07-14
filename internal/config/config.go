@@ -65,7 +65,7 @@ func Load(getenv func(string) string) (Config, error) {
 
 	address := strings.TrimSpace(getenv("APP_ADDR"))
 	if address == "" {
-		address = "127.0.0.1:8080"
+		address = "127.0.0.1:18080"
 	}
 	databasePath := strings.TrimSpace(getenv("DATABASE_PATH"))
 	if databasePath == "" {

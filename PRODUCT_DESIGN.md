@@ -46,6 +46,27 @@ The concrete reference user is John:
 
 ## Status Quo
 
+Synthetic implementation schedule supplied 15 July 2026:
+
+- Monday: 16:00–22:00; Pennant training is not given a separate operational
+  status in the current synthetic presentation, so the open hours remain green
+- Tuesday: 12:00–14:00 and 16:00–22:00; official social 16:00–18:00
+- Wednesday: 14:30–22:00
+- Thursday: 16:00–22:00
+- Friday: 15:00–20:00; official social 15:00–18:00
+- Saturday: 09:00–15:00; squads represented as Coaching from 10:00–11:30
+- Sunday: 12:00–17:00
+
+The supplied Saturday 10:15–11:15 period is rounded outward to 10:00–11:30 to
+preserve the approved 30-minute schedule boundaries. These are synthetic weekly
+defaults for both courts, not member reservations.
+
+The dashboard presentation uses two bounded calendar-week pages: the current
+Monday–Sunday week, including elapsed days, and the following Monday–Sunday
+week. This replaces a rolling visual window but does not expand attendance
+registration beyond the approved future horizon. `Today` always returns to the
+current Sydney date.
+
 - Court use is first-come-first-served and governed in person.
 - The application does not replace or integrate with that governing process.
 - The two courts may be used seven days a week when the lights are on.
