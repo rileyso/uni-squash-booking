@@ -50,6 +50,9 @@ type Config struct {
 	Address            string
 	DatabasePath       string
 	RecoveryGeneration string
+	DeviceCookieSecret string
+	AdminUsername      string
+	AdminPasswordHash  string
 	Synthetic          bool
 	Capabilities       Capabilities
 }
@@ -76,7 +79,7 @@ func Load(getenv func(string) string) (Config, error) {
 		recoveryGeneration = "synthetic-development-generation"
 	}
 
-	config := Config{Environment: environment, Address: address, DatabasePath: databasePath, RecoveryGeneration: recoveryGeneration, Synthetic: environment != Production}
+	config := Config{Environment: environment, Address: address, DatabasePath: databasePath, RecoveryGeneration: recoveryGeneration, DeviceCookieSecret: strings.TrimSpace(getenv("DEVICE_COOKIE_SECRET")), AdminUsername: strings.TrimSpace(getenv("ADMIN_USERNAME")), AdminPasswordHash: strings.TrimSpace(getenv("ADMIN_PASSWORD_HASH")), Synthetic: environment != Production}
 	if environment != Production {
 		if !isLoopback(address) {
 			return Config{}, errors.New("development and test must bind to loopback")
@@ -84,10 +87,19 @@ func Load(getenv func(string) string) (Config, error) {
 		// M3 identity functionality is available only with disposable synthetic
 		// data outside production. Production remains approval-gated below.
 		config.Capabilities = Capabilities{PublicNamedAttendance: true, PublicAccountCreation: true, PINReset: true, SelfDelete: true}
+		if config.AdminUsername == "" {
+			config.AdminUsername = "riley"
+		}
 		return config, nil
 	}
 	if recoveryGeneration == "" {
 		return Config{}, errors.New("RECOVERY_GENERATION is required in production")
+	}
+	if len(config.DeviceCookieSecret) < 32 {
+		return Config{}, errors.New("DEVICE_COOKIE_SECRET must contain at least 32 characters in production")
+	}
+	if config.AdminUsername == "" || config.AdminPasswordHash == "" {
+		return Config{}, errors.New("ADMIN_USERNAME and ADMIN_PASSWORD_HASH are required in production")
 	}
 	manifestPath := strings.TrimSpace(getenv("APPROVAL_MANIFEST"))
 	if manifestPath == "" {

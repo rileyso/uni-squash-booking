@@ -23,11 +23,23 @@ func TestAttemptLimiterBoundariesAndExpiry(t *testing.T) {
 		t.Fatal("login lock did not expire")
 	}
 	for attempt := 0; attempt < 3; attempt++ {
-		if !limiter.creationAllowed("127.0.0.1:1000", "browser") {
+		if !limiter.creationAllowed("127.0.0.1:1000", "signed-device") {
 			t.Fatalf("creation blocked at attempt %d", attempt)
 		}
 	}
-	if limiter.creationAllowed("127.0.0.1:1000", "browser") {
+	if limiter.creationAllowed("127.0.0.1:1000", "signed-device") {
 		t.Fatal("fourth device creation attempt accepted")
+	}
+}
+
+func TestAttemptLimiterIsBoundedAndEvictionDeterministic(t *testing.T) {
+	limiter := newAttemptLimiter()
+	limiter.maxEntries = 3
+	limiter.now = func() time.Time { return time.Unix(100, 0) }
+	for _, user := range []string{"c#0003", "a#0001", "b#0002"} {
+		limiter.loginFailed(user, "127.0.0.1:1")
+	}
+	if len(limiter.values) > limiter.maxEntries {
+		t.Fatalf("entries=%d max=%d", len(limiter.values), limiter.maxEntries)
 	}
 }

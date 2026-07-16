@@ -13,7 +13,7 @@ import (
 
 func testService(t *testing.T) *Service {
 	t.Helper()
-	configuration := config.Config{Environment: config.Test, DatabasePath: filepath.Join(t.TempDir(), "test.sqlite"), RecoveryGeneration: "test-generation", Synthetic: true}
+	configuration := config.Config{Environment: config.Test, DatabasePath: filepath.Join(t.TempDir(), "test.sqlite"), RecoveryGeneration: "test-generation", Synthetic: true, Capabilities: config.Capabilities{PublicNamedAttendance: true, PublicAccountCreation: true, PINReset: true, SelfDelete: true}}
 	store, err := sqlite.Open(context.Background(), configuration.DatabasePath, configuration.RecoveryGeneration)
 	if err != nil {
 		t.Fatal(err)
@@ -143,18 +143,23 @@ func TestSaturdaySquadsHaveCoachingNote(t *testing.T) {
 	}
 }
 
-func TestSocialSessionsMarkBothOpenCourtCells(t *testing.T) {
+func TestSocialSessionsStayInSeparateSchedule(t *testing.T) {
 	dashboard, err := testService(t).Dashboard(context.Background(), "2026-07-14", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	social := dashboard.DesktopSlots[6]
-	if social.TimeLabel != "16:00" || social.CourtOne.Note != "Social" || social.CourtTwo.Note != "Social" {
-		t.Fatalf("social notes missing from open court cells: %#v", social)
+	if social.TimeLabel != "16:00" || social.CourtOne.Note != "" || social.CourtTwo.Note != "" {
+		t.Fatalf("social text appeared in open court cells: %#v", social)
 	}
-	beforeSocial := dashboard.DesktopSlots[5]
-	if beforeSocial.CourtOne.Note != "" || beforeSocial.CourtTwo.Note != "" {
-		t.Fatalf("social note shown before session: %#v", beforeSocial)
+	var scheduleShown bool
+	for _, day := range dashboard.Days {
+		if day.Date == "2026-07-14" && day.Social && day.SocialTime != "" {
+			scheduleShown = true
+		}
+	}
+	if !scheduleShown {
+		t.Fatal("social session missing from separate schedule")
 	}
 }
 

@@ -1,0 +1,31 @@
+{{define "auth-surface"}}
+<div class="form-page floating-page auth-surface-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-heading" data-auth-overlay>
+  <section class="form-panel floating-window" aria-labelledby="auth-heading">
+    <a class="floating-close" href="/" aria-label="Close account access">×</a>
+    <p class="eyebrow">Account access</p>
+    <h1 id="auth-heading">{{if .Create}}Create account{{else}}Sign in{{end}}</h1>
+    {{if .Error}}<p class="form-error" role="alert" tabindex="-1" autofocus>{{.Error}}</p>{{end}}
+    {{if .Create}}
+    <form method="post" action="/accounts" hx-post="/accounts" hx-target="#auth-surface-root" hx-swap="innerHTML">
+      <label>Display name<input name="display_name" required maxlength="40" autocomplete="name"></label>
+      <label>Four-digit PIN<input name="pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="new-password"></label>
+      <label>Confirm PIN<input name="pin_confirm" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="new-password"></label>
+      <fieldset><legend>I am a</legend><label><input type="radio" name="member_status" value="member" required> Club member</label><label><input type="radio" name="member_status" value="visitor"> Visitor</label></fieldset>
+      <label class="check"><input type="checkbox" name="privacy_ack" required> I understand my display name and planned attendance will be visible on the attendance timetable.</label>
+      <input type="hidden" name="intent_date" value="{{.IntentDate}}"><input type="hidden" name="intent_start" value="{{.IntentStart}}"><input type="hidden" name="intent_end" value="{{.IntentEnd}}"><input type="hidden" name="intent_time" value="{{.IntentTime}}">
+      <button type="submit">Create account</button>
+    </form>
+    <p class="form-switch">Already have an account? <a href="/sign-in?intent_date={{.IntentDate}}&amp;intent_start={{.IntentStart}}&amp;intent_end={{.IntentEnd}}&amp;intent_time={{.IntentTime}}" hx-get="/sign-in?intent_date={{.IntentDate}}&amp;intent_start={{.IntentStart}}&amp;intent_end={{.IntentEnd}}&amp;intent_time={{.IntentTime}}" hx-target="#auth-surface-root" hx-swap="innerHTML">Sign in</a></p>
+    {{else}}
+    <form method="post" action="/sign-in" data-sign-in-form hx-post="/sign-in" hx-target="#auth-surface-root" hx-swap="innerHTML">
+      <label>Full username<input name="username" value="{{.Username}}" required autocomplete="username" data-remember-username></label>
+      <label>Four-digit PIN<input name="pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="current-password"></label>
+      <label class="check"><input type="checkbox" data-remember-toggle> Remember username on this browser</label>
+      <input type="hidden" name="intent_date" value="{{.IntentDate}}"><input type="hidden" name="intent_start" value="{{.IntentStart}}"><input type="hidden" name="intent_end" value="{{.IntentEnd}}"><input type="hidden" name="intent_time" value="{{.IntentTime}}">
+      <button type="submit">Sign in</button>
+    </form>
+    <p class="form-switch">New here? <a href="/accounts/new?intent_date={{.IntentDate}}&amp;intent_start={{.IntentStart}}&amp;intent_end={{.IntentEnd}}&amp;intent_time={{.IntentTime}}" hx-get="/accounts/new?intent_date={{.IntentDate}}&amp;intent_start={{.IntentStart}}&amp;intent_end={{.IntentEnd}}&amp;intent_time={{.IntentTime}}" hx-target="#auth-surface-root" hx-swap="innerHTML">Create account</a></p>
+    {{end}}
+  </section>
+</div>
+{{end}}

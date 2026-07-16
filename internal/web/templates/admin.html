@@ -1,0 +1,22 @@
+{{define "admin"}}<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Administration · Sydney Uni Squash</title><link rel="stylesheet" href="/static/app.css"><link rel="stylesheet" href="/static/forms.css"></head>
+<body>
+{{if .Synthetic}}<div class="synthetic" role="status">Synthetic development data only · identity checks are placeholders</div>{{end}}
+<main class="form-page">
+<section class="form-panel" aria-labelledby="admin-heading">
+<p class="eyebrow">Administration</p>
+<h1 id="admin-heading">{{if .SignedIn}}Account recovery{{else}}Administrator sign in{{end}}</h1>
+{{if .Error}}<p class="form-error" role="alert">{{.Error}}</p>{{end}}
+{{if .SignedIn}}
+<p><a href="/admin/schedule">Manage schedule</a></p>
+<form method="get" action="/admin/accounts"><label>Find account by display name, full username, or player code<input name="q" value="{{.Query}}" required maxlength="80"></label><button type="submit">Search accounts</button></form>
+{{if .TemporaryPIN}}<section class="form-warning" role="status"><h2>Temporary PIN — display once</h2><p class="username-result"><strong>{{.TemporaryPIN}}</strong></p><p>Deliver this privately. It will not be shown again, and the member must replace it after signing in.</p></section>{{end}}
+{{if .Results}}<h2>Search results</h2>{{range .Results}}<article><p><strong>{{.DisplayName}}</strong><br>{{.FullUsername}} · code {{.PlayerCode}} · {{.Status}}</p><form method="post" action="/admin/accounts/{{.ID}}/reset-pin"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="q" value="{{$.Query}}"><label class="check"><input type="checkbox" name="identity_check_attested" value="yes" required> I attest that the approved identity check was completed.</label><button type="submit">Generate temporary PIN</button></form></article>{{end}}{{else if .Query}}<p>No matching accounts.</p>{{end}}
+<form method="post" action="/admin/sign-out"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="secondary" type="submit">Sign out</button></form>
+{{else}}
+<form method="post" action="/admin/sign-in"><label>Administrator username<input name="username" required autocomplete="username"></label><label>Administrator password<input name="password" required type="password" autocomplete="current-password"></label><button type="submit">Sign in</button></form>
+{{end}}
+</section>
+</main>
+</body></html>{{end}}

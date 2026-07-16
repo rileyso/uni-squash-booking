@@ -30,7 +30,8 @@
 .attendance-panel button { min-height: 44px; padding: .65rem 1rem; border: 0; border-radius: .4rem; background: var(--info); color: #fff; font: 700 1rem inherit; cursor: pointer; }
 .attendance-panel button.secondary { border: 1px solid var(--border); background: #fff; color: var(--navy); }
 .selection-panel form { display: grid; gap: .75rem; margin: 1rem 0 0; }
-.selection-panel button { min-height: 44px; padding: .65rem 1rem; border: 0; border-radius: .4rem; background: var(--info); color: #fff; font: 700 1rem inherit; cursor: pointer; }
+.selection-panel button { min-height: 44px; padding: .65rem 1rem; border: 0; border-radius: .4rem; background: var(--positive); color: #fff; font: 700 1rem inherit; cursor: pointer; }
+.selection-panel button:hover { background: #0f5f2a; color: #fff; }
 .attendance-date { margin: -.2rem 0 1rem; color: var(--slate); font-size: 1.05rem; font-weight: 700; }
 .single-range { display: grid; gap: .55rem; padding: .85rem; border: 1px solid var(--border); border-radius: .5rem; background: #f8fafc; }
 .slider-endpoints { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; font-variant-numeric: tabular-nums; }
@@ -122,9 +123,9 @@
 .horizontal-calendar td { position: relative; height: 32px; padding: 0; vertical-align: middle; }
 .horizontal-calendar td.selected-interval { background-color: rgba(29, 78, 216, .14); }
 .horizontal-calendar td.selected-interval .court-status { background-color: transparent; }
-.horizontal-calendar td.selected-interval .court-status.closed { background-color: transparent; background-image: repeating-linear-gradient(135deg, transparent 0, transparent 5px, rgba(180, 35, 24, .12) 5px, rgba(180, 35, 24, .12) 7px); }
-.plan-marker { position: absolute; z-index: 4; top: 2px; right: 2px; width: 15px; height: 15px; display: grid; place-items: center; border: 1px solid #fff; border-radius: 50%; background: #32b64a; box-shadow: 0 1px 3px rgba(16, 42, 67, .24); pointer-events: none; }
-.plan-marker svg { width: 10px; height: 10px; fill: #dbe8f7; }
+.horizontal-calendar td.selected-interval .court-status.closed { background-color: #fef3f2; background-image: none; }
+.plan-marker { position: absolute; z-index: 6; top: 50%; right: 3px; left: auto; width: 12px; height: 12px; display: block; background: url('/static/checkmark.svg') center / contain no-repeat; pointer-events: none; transform: translateY(-50%); }
+.plan-marker svg { display: none; }
 .turnout-count { position: absolute; z-index: 5; top: calc(100% + 5px); left: 50%; min-width: 64px; min-height: 22px; display: flex; align-items: center; justify-content: center; padding: .1rem .65rem; border: 1px solid var(--navy); border-radius: .35rem; background: #fff; box-shadow: 0 3px 8px rgba(16, 42, 67, .16); color: var(--navy); text-decoration: none; font-size: .72rem; opacity: 0; pointer-events: none; transform: translateX(-50%); }
 .turnout-count::before { content: ""; position: absolute; left: 50%; top: -5px; width: 8px; height: 8px; border-top: 1px solid var(--navy); border-left: 1px solid var(--navy); background: #fff; transform: translateX(-50%) rotate(45deg); }
 .turnout-count:focus-visible { opacity: 1; }
@@ -144,10 +145,37 @@
 .horizontal-calendar:has(tbody td:nth-child(13) .court-status.open:hover) tbody tr:last-child td:nth-child(13) .turnout-count,
 .horizontal-calendar:has(tbody td:nth-child(14) .court-status.open:hover) tbody tr:last-child td:nth-child(14) .turnout-count { opacity: 1; }
 .turnout-count.players, .turnout-count.good, .turnout-count.crowded { background: #fff; }
+/* Turnout is the primary timetable signal, so keep the player count and people
+   icon visible inside the desktop cell instead of revealing them only on hover. */
+.horizontal-calendar .turnout-count {
+  top: 50%;
+  left: 50%;
+  min-width: 44px;
+  min-height: 30px;
+  padding: .1rem .25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+.horizontal-calendar .turnout-count::before { display: none; }
+.horizontal-calendar .turnout-count strong { flex-direction: row; gap: .3rem; }
+.horizontal-calendar .turnout-count .fa-users-icon { width: 1rem; height: .8rem; }
+.horizontal-calendar td:not(:has(> .court-status.open)) > .turnout-count { display: none; }
+.participant-hover { position: absolute; z-index: 20; left: 50%; top: calc(100% + .35rem); display: none; width: max-content; min-width: 8rem; max-width: 12rem; padding: .52rem .64rem; border: 1px solid var(--border); border-radius: .4rem; background: #fff; box-shadow: 0 .4rem 1rem rgba(16,42,67,.18); color: var(--navy); font-size: .8rem; text-align: left; transform: translateX(-50%); }
+.participant-hover ul, .selection-participants ul { margin: .35rem 0 0; padding-left: 1.1rem; }
+.participant-hover li, .selection-participants li { margin: .15rem 0; }
+.horizontal-calendar td:hover > .participant-hover, .horizontal-calendar td:focus-within > .participant-hover { display: block; }
+.selection-participants { display: none; margin: .8rem 0; padding: .52rem .6rem; border: 1px solid var(--border); border-radius: .4rem; background: #f8fafc; font-size: .85rem; }
+.floating-page.auth-surface-overlay { position: fixed; inset: 0; z-index: 30; width: 100%; max-width: none; min-height: 100%; margin: 0; overflow: auto; display: grid; place-items: center; padding: clamp(1rem,5vw,3rem); background: rgba(16,42,67,.42); }
+@media(max-width:520px){.floating-page.auth-surface-overlay{align-items:center;padding:1rem}}
 .court-status { width: 64px; min-height: 31px; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 3px solid var(--danger); background: #fff; color: var(--navy); text-decoration: none; line-height: 1; }
 .court-status.open { border-color: var(--positive); }
 .court-status.open:hover { background: #ecfdf3; }
-.court-status.closed { background-image: repeating-linear-gradient(135deg, transparent 0, transparent 5px, rgba(180, 35, 24, .12) 5px, rgba(180, 35, 24, .12) 7px); }
+.court-status.closed { background-color: #fef3f2; background-image: none; }
 .court-status.competition, .court-status.coaching { border-color: var(--special); }
 .court-status small { font-size: .72rem; font-weight: 600; line-height: 1; white-space: nowrap; }
 .selection-actions { width: 910px; max-width: 100%; display: flex; justify-content: flex-end; margin: .45rem 0 0; }
@@ -181,7 +209,7 @@
   .mobile-timetable, .slot-list, .slot-list li, .turnout, .court-rails { width: 100%; max-width: 100%; min-width: 0; }
   .mobile-court-headings { width: 100%; display: grid; grid-template-columns: 3.9rem 35fr 35fr 30fr; gap: .15rem; padding: 0 .35rem .25rem; color: var(--slate); text-align: center; font-size: .72rem; }
   .slot-list li { position: relative; min-height: 50px; grid-template-columns: 3.9rem minmax(0, 1fr); grid-template-rows: minmax(44px, 1fr); gap: 0 .35rem; padding: .05rem .35rem; }
-  .slot-list .plan-marker { top: .2rem; right: .45rem; width: 17px; height: 17px; }
+  .slot-list .plan-marker { top: 50%; right: .7rem; left: auto; width: 12px; height: 12px; transform: translateY(-50%); }
   .slot-list time { grid-row: 1; display: flex; align-items: center; padding-top: 0; font-size: .76rem; line-height: 1.15; }
   .slot-list .turnout, .slot-list .court-rails { grid-column: 2; grid-row: 1; }
   .slot-list .turnout { position: relative; z-index: 2; min-height: 44px; display: block; overflow: hidden; padding: 0; border-left: 0; background: transparent; font-size: .68rem; line-height: 1; }
@@ -195,11 +223,12 @@
   .slot-list .court-rails span { position: relative; min-height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0; background: #fff; text-align: center; }
   .slot-list .court-rails span::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 100%; background: #fef3f2; }
   .slot-list .court-rails span.open::before { background: transparent; }
+  .slot-list li.selected-interval .court-rails span.open { background-color: transparent; }
   .slot-list li:hover .court-rails span.open::before,
   .slot-list .turnout:focus-visible + .court-rails span.open::before { background: #ecfdf3; }
   .slot-list .court-rails span.competition::before, .slot-list .court-rails span.coaching::before { background: #f5f3ff; }
   .slot-list .court-rails span.closed { background-image: none; }
-  .slot-list .court-rails span.closed::before { background-color: #fef3f2; background-image: repeating-linear-gradient(135deg, transparent 0, transparent 5px, rgba(180, 35, 24, .12) 5px, rgba(180, 35, 24, .12) 7px); }
+  .slot-list .court-rails span.closed::before { background-color: #fef3f2; background-image: none; }
   .slot-list .court-rails span > * { position: relative; z-index: 1; }
   .slot-list .court-rails small { max-width: 100%; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; font-size: .65rem; font-weight: 600; line-height: 1; }
   .your-plans { width: 100%; max-width: 100%; }
@@ -221,4 +250,13 @@
   .date-anchor { position: static; width: 7rem; min-width: 7rem; justify-self: center; align-self: center; }
   .date-strip { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, 7rem); justify-content: center; gap: .35rem; overflow: visible; }
   .date-strip a { width: 7rem; min-width: 0; }
+}
+.existing-plan-cell .turnout,
+.existing-plan-cell .turnout-count,
+.existing-plan-cell .court-status {
+  cursor: not-allowed;
+}
+@media (max-width: 880px) {
+  .selection-participants { display: block; }
+  .participant-hover { display: none !important; }
 }

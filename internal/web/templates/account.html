@@ -1,0 +1,56 @@
+{{define "account"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Delete}}Delete account{{else if .PIN}}Change PIN{{else}}Your profile{{end}} · Sydney Uni Squash</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/forms.css">
+</head>
+<body>
+  {{if .Synthetic}}<div class="synthetic" role="status">Synthetic development data only</div>{{end}}
+  <main class="form-page">
+    {{if not .Member.MustChangePIN}}<a href="/">← Back to planned attendance</a>{{end}}
+    <section class="form-panel" aria-labelledby="account-heading">
+      <p class="eyebrow">Account</p>
+      <h1 id="account-heading">{{if .Delete}}Delete account{{else if .PIN}}{{if .Member.MustChangePIN}}Replace temporary PIN{{else}}Change PIN{{end}}{{else}}Your profile{{end}}</h1>
+      {{if .Member.MustChangePIN}}<p class="form-warning">You must replace the temporary PIN before accessing planned attendance or your profile.</p>{{end}}
+      {{if .Error}}<p class="form-error" role="alert" tabindex="-1">{{.Error}}</p>{{end}}
+      {{if .Success}}<p role="status">{{.Success}}</p>{{end}}
+      {{if .Delete}}
+      <p>Deleting your account removes future planned attendance, signs out every device, and removes your identity from retained historical planned-attendance records. This cannot be undone.</p>
+      <form method="post" action="/account/delete">
+        <label>Exact username<input name="username" required autocomplete="off" aria-describedby="delete-username-help"></label>
+        <small id="delete-username-help">Enter <strong>{{.Member.FullUsername}}</strong> exactly.</small>
+        <label>Current PIN<input name="current_pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="current-password"></label>
+        <input type="hidden" name="csrf" value="{{.CSRF}}">
+        <button type="submit">Delete my account</button>
+      </form>
+      {{else if .PIN}}
+      <form method="post" action="/account/pin">
+        <label>Current PIN<input name="current_pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="current-password"></label>
+        <label>New four-digit PIN<input name="new_pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="new-password"></label>
+        <label>Confirm new PIN<input name="new_pin_confirm" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="new-password"></label>
+        <input type="hidden" name="csrf" value="{{.CSRF}}">
+        <button type="submit">Change PIN</button>
+      </form>
+      {{else}}
+      <p><strong>Username:</strong> {{.Member.FullUsername}}</p>
+      <form method="post" action="/account/profile">
+        <label>Display name<input name="display_name" value="{{.Member.DisplayName}}" required minlength="2" maxlength="40" autocomplete="name"></label>
+        <fieldset><legend>I am a</legend><label><input type="radio" name="member_status" value="member" required {{if eq .Member.MemberStatus "member"}}checked{{end}}> Club member</label><label><input type="radio" name="member_status" value="visitor" {{if eq .Member.MemberStatus "visitor"}}checked{{end}}> Visitor</label></fieldset>
+        <label>Current PIN<input name="current_pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="current-password"></label>
+        <input type="hidden" name="csrf" value="{{.CSRF}}">
+        <button type="submit">Save profile</button>
+      </form>
+      <p><a href="/account/pin">Change PIN</a></p>
+      {{if .SelfDelete}}<p><a href="/account/delete">Delete account</a></p>{{end}}
+      {{end}}
+      <form method="post" action="/sign-out">
+        <input type="hidden" name="csrf" value="{{.CSRF}}">
+        <button class="secondary" type="submit">Sign out</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>{{end}}

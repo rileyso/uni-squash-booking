@@ -1,0 +1,36 @@
+{{define "admin-schedule"}}<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Schedule administration · Sydney Uni Squash</title><link rel="stylesheet" href="/static/app.css"><link rel="stylesheet" href="/static/forms.css"></head>
+<body>
+{{if .Synthetic}}<div class="synthetic" role="status">Synthetic development data only</div>{{end}}
+<main class="form-page">
+<section class="form-panel" aria-labelledby="schedule-heading">
+<p class="eyebrow">Administration</p><h1 id="schedule-heading">Schedule</h1>
+<p><a href="/admin/accounts">Account recovery</a></p>
+{{if .Error}}<p class="form-error" role="alert">{{.Error}}</p>{{end}}
+
+<h2>Add weekly court status</h2>
+<form method="post" action="/admin/schedule/weekly">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<label>Court<select name="court"><option value="1">Court 1</option><option value="2">Court 2</option></select></label>
+<label>Status<select name="kind"><option value="open">Open for play</option><option value="lights_off">Lights off</option><option value="competition">Competition</option><option value="coaching">Coaching</option><option value="closure">Other closure</option></select></label>
+<label>Day<select name="weekday">{{range $i := (days)}}<option value="{{$i}}">{{weekdayLabel $i}}</option>{{end}}</select></label>
+<div class="time-fields"><label>Start<input type="number" name="start" min="0" max="1410" step="30" value="1080" required><small>Minutes after midnight, in 30-minute steps.</small></label><label>End<input type="number" name="end" min="30" max="1440" step="30" value="1200" required></label></div>
+<label>Effective from<input type="date" name="effective" required></label><label>Optional label<input name="title" maxlength="80"></label><button type="submit">Add weekly status</button>
+</form>
+
+<h2>Add dated court status</h2>
+<form method="post" action="/admin/schedule/dated">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<label>Date<input type="date" name="date" required></label><label>Court<select name="court"><option value="1">Court 1</option><option value="2">Court 2</option></select></label>
+<label>Status<select name="kind"><option value="open">Open for play</option><option value="lights_off">Lights off</option><option value="competition">Competition</option><option value="coaching">Coaching</option><option value="closure">Other closure</option></select></label>
+<div class="time-fields"><label>Start (minutes after midnight)<input type="number" name="start" min="0" max="1410" step="30" value="1080" required></label><label>End<input type="number" name="end" min="30" max="1440" step="30" value="1200" required></label></div>
+<label>Optional label<input name="title" maxlength="80"></label><button type="submit">Add dated status</button>
+</form>
+
+<h2>Add weekly social session</h2>
+<form method="post" action="/admin/schedule/social"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>Day<select name="weekday">{{range $i := (days)}}<option value="{{$i}}">{{weekdayLabel $i}}</option>{{end}}</select></label><div class="time-fields"><label>Start (minutes after midnight)<input type="number" name="start" min="0" max="1410" step="30" value="1080" required></label><label>End<input type="number" name="end" min="30" max="1440" step="30" value="1200" required></label></div><label>Effective from<input type="date" name="effective" required></label><button type="submit">Add social session</button></form>
+
+<h2>Current schedule entries</h2>
+{{if .Entries}}{{range .Entries}}<article><p><strong>{{scheduleKind .Kind}}</strong> · {{if .Date}}{{.Date}}{{else}}{{weekdayLabel .Weekday}}{{end}} · {{scheduleTime .Start}}–{{scheduleTime .End}}{{if .Court}} · Court {{.Court}}{{end}}{{if .Title}} · {{.Title}}{{end}}</p><form method="post" action="/admin/schedule/{{.Type}}/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="secondary" type="submit">Remove</button></form></article>{{end}}{{else}}<p>No schedule entries.</p>{{end}}
+</section></main></body></html>{{end}}

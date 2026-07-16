@@ -166,15 +166,22 @@ This and future: end old series + create replacement series (one transaction)
 - CSRF protection is required independently of `SameSite`: every state-changing form carries a session-bound token and rejects missing or invalid tokens.
 - Session identifiers, raw cookies, PINs, and CSRF tokens are redacted from logs and error reports.
 
-### D8: Last-write-wins attendance replacement
+### D8: Transactional additive attendance
 
 - Decision update, 16 July 2026: SQLite allows multiple non-overlapping attendance intervals per account and Sydney civil date.
-- Add/change uses an atomic same-day replacement keyed by account and date. Remove deletes the currently stored intervals for that owned account/date even if another tab rendered an older value.
+- Cell-based add uses an atomic same-day union keyed by account and date. The
+  transaction reads current intervals, adds the submitted intervals, and merges
+  adjacent or overlapping ranges before writing. Remove deletes the currently
+  stored intervals for that owned account/date even if another tab rendered an
+  older value.
 - Every mutation runs in a short write transaction that rechecks the authenticated account, date window, interval shapes, non-overlap, and continuous current schedule availability for each interval before writing.
 - Schedule revalidation never trusts a timetable revision or form field supplied by the browser. If the interval is no longer valid, no write occurs and the approved preserved-input conflict UI is returned.
 - The response always re-renders the authoritative interval and `Your plans` state after commit; it never assumes that submitted values became final without reading the result.
-- Duplicate rapid submissions are safe because same-day replacement makes the final interval set well-formed, though the most recently committed valid request wins.
-- Accepted risk: two stale tabs can silently replace or remove a newer plan. Release 1 does not carry an optimistic plan version or present a lost-update conflict.
+- Duplicate rapid additions are idempotent because transactional union and
+  normalisation make the final interval set well-formed.
+- Accepted risk: a stale removal can still remove a newer same-day addition.
+  Release 1 does not carry an optimistic plan version or present a lost-update
+  conflict.
 - A process-wide mutex is not part of correctness. Database transactions and constraints remain authoritative so a future storage migration does not inherit hidden in-memory locking assumptions.
 
 ### D9: Deployment-secret administrator credential
@@ -617,15 +624,15 @@ Separate worktrees may be used after E3 establishes package and schema contracts
 
 ## Implementation milestones
 
-Implementation progress on 14 July 2026:
+Implementation progress updated 17 July 2026:
 
 | Milestone | Status | Evidence / remaining boundary |
 |---|---|---|
 | M0 | Complete | Official Go archive checksum verified; Go 1.26.4, `sqlc` 1.31.1, `goose` 3.27.1, and `jq` 1.8.1 verified; governance reconciled |
 | M1 | Complete | Runnable modular service, typed gates, strict SQLite migrations, generation/lockdown readiness, CI, race/vet, and 82.6% eligible coverage |
 | M2 | Code complete; validation pending | Synthetic fixtures, anonymous batch read model and interval disclosure, desktop/mobile timetable, turnout bands, social markers, and court rails implemented; manual accessibility/browser validation remains |
-| M3 | Not started | Account and attendance identity routes remain deliberately unregistered |
-| M4 | Not started | Recovery detection exists; administration, lifecycle, scrub command, backups, and deployment are not implemented |
+| M3 | Code complete; validation pending | Synthetic accounts, hardened opaque member sessions, CSRF, bounded throttling, signed anonymous-device identity, additive planned attendance, profile/PIN lifecycle, forced temporary-PIN replacement, remember-username support, gated self-delete with historical anonymisation, and contextual HTMX authentication with full-page fallback are implemented. Automated tests and race checks pass; manual responsive, keyboard, screen-reader, 200% zoom, reduced-motion, and HTMX-failure validation remain |
+| M4 | In progress | Separate administrator authentication, short opaque admin sessions, Strict admin cookies, CSRF, throttling, deployment-credential fingerprint revocation, account search, attested temporary-PIN reset, forced member PIN replacement, session revocation, redacted reset logging, protected creation/removal of weekly, dated, and social schedule entries, exact-identifier moderation CLI, and verified consistent pre-deletion snapshots are implemented. Recurrence-scope editing, general backup/restore operations, recovery identity scrub, and container smoke tests remain |
 | M5 | Committee-gated | No real data or production capability has been enabled |
 
 ### M0 — Planning and toolchain baseline

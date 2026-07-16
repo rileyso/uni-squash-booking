@@ -25,6 +25,8 @@ type Dashboard struct {
 	HasSelectedInterval bool
 	SelectedRanges      []SelectedRange
 	SelectedTotal       string
+	SummaryRanges       []SelectedRange
+	SummaryTotal        string
 	CanConfirmSelection bool
 	SelectionNotice     string
 	Detail              *IntervalDetail
@@ -136,14 +138,6 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 			interval, _ := domain.NewInterval(minute, minute+60)
 			one := courtState(data.Weekly, data.OneOffs, date, 1, interval, s.location)
 			two := courtState(data.Weekly, data.OneOffs, date, 2, interval, s.location)
-			if socialOverlaps(data.Social, date, interval, s.location) {
-				if one.Class == "open" {
-					one.Note = "Social"
-				}
-				if two.Class == "open" {
-					two.Note = "Social"
-				}
-			}
 			count := attendanceCount(data.Attendance, date.String(), interval)
 			band, class := turnoutBand(count)
 			day.Slots = append(day.Slots, Slot{StartMinute: minute, TimeLabel: minuteLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open"), Selected: selectedMinuteSet[minute]})
@@ -157,14 +151,6 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		interval, _ := domain.NewInterval(minute, minute+60)
 		one := courtState(data.Weekly, data.OneOffs, selected, 1, interval, s.location)
 		two := courtState(data.Weekly, data.OneOffs, selected, 2, interval, s.location)
-		if socialOverlaps(data.Social, selected, interval, s.location) {
-			if one.Class == "open" {
-				one.Note = "Social"
-			}
-			if two.Class == "open" {
-				two.Note = "Social"
-			}
-		}
 		count := attendanceCount(data.Attendance, selected.String(), interval)
 		band, class := turnoutBand(count)
 		dashboard.DesktopSlots = append(dashboard.DesktopSlots, Slot{StartMinute: minute, TimeLabel: hourLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open"), Selected: selectedMinuteSet[minute]})
@@ -197,6 +183,8 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		dashboard.SelectedTimeQuery = minuteQuery(validSelected)
 		dashboard.SelectedRanges = selectedRanges(validSelected)
 		dashboard.SelectedTotal = selectedTotal(dashboard.SelectedRanges)
+		dashboard.SummaryRanges = dashboard.SelectedRanges
+		dashboard.SummaryTotal = dashboard.SelectedTotal
 		allValid := len(dashboard.SelectedRanges) > 0
 		for _, selected := range dashboard.SelectedRanges {
 			if err := s.ValidateAttendance(ctx, selectedDay.Date, selected.StartMinute, selected.EndMinute); err != nil {
@@ -317,16 +305,6 @@ func socialTimeOnDate(rows []sqlcdb.SocialSession, date domain.CivilDate, locati
 		}
 	}
 	return ""
-}
-
-func socialOverlaps(rows []sqlcdb.SocialSession, date domain.CivilDate, interval domain.Interval, location *time.Location) bool {
-	iso := isoWeekday(date.Weekday(location))
-	for _, row := range rows {
-		if int64(iso) == row.IsoWeekday && date.String() >= row.EffectiveStartDate && (!row.EffectiveEndDate.Valid || date.String() <= row.EffectiveEndDate.String) && overlaps(row.StartMinute, row.EndMinute, interval) {
-			return true
-		}
-	}
-	return false
 }
 
 func courtState(weekly []sqlcdb.WeeklySeries, oneOffs []sqlcdb.OneOffEvent, date domain.CivilDate, court int64, interval domain.Interval, location *time.Location) CourtState {

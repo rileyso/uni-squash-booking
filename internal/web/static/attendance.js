@@ -1,32 +1,4 @@
 (() => {
-  const scrollKey = 'sydSquash.mobileTimetableScrollY';
-  const mobileViewport = window.matchMedia ? window.matchMedia('(max-width: 880px)') : null;
-  const isMobileViewport = () => !mobileViewport || mobileViewport.matches;
-  try {
-    const savedScroll = sessionStorage.getItem(scrollKey);
-    if (savedScroll !== null) {
-      sessionStorage.removeItem(scrollKey);
-      const scrollY = Number(savedScroll);
-      if (Number.isFinite(scrollY) && isMobileViewport()) {
-        requestAnimationFrame(() => window.scrollTo({top: scrollY, left: window.scrollX, behavior: 'auto'}));
-      }
-    }
-  } catch (_) {}
-
-  document.addEventListener('click', event => {
-    const link = event.target.closest('.mobile-timetable a[href]');
-    if (!link || !isMobileViewport() || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target) {
-      return;
-    }
-    const next = new URL(link.href, window.location.href);
-    if (next.origin !== window.location.origin || next.pathname !== window.location.pathname) {
-      return;
-    }
-    try {
-      sessionStorage.setItem(scrollKey, String(window.scrollY));
-    } catch (_) {}
-  });
-
   const form = document.querySelector('[data-attendance-form]');
   if (!form) return;
   const start = form.querySelector('[data-start]');
@@ -180,4 +152,85 @@
     rangeControl.addEventListener('pointercancel', stopDrag);
   }
   sync();
+})();
+
+(() => {
+  const cache = new Map();
+  const loadNames = async (date, start, end) => {
+    const key = `${date}:${start}:${end}`;
+    if (!cache.has(key)) {
+      const query = new URLSearchParams({date, start: String(start), end: String(end)});
+      cache.set(key, fetch(`/attendance/participants?${query}`, {headers: {'Accept': 'application/json'}})
+        .then(response => response.ok ? response.json() : {names: []})
+        .then(data => Array.isArray(data.names) ? data.names : []).catch(() => []));
+    }
+    return cache.get(key);
+  };
+  const renderNames = (container, names) => {
+    container.replaceChildren();
+    const text = document.createElement('span');
+    text.textContent = names.length ? names.join(', ') : 'Empty';
+    container.append(text);
+  };
+  const enhance = root => {
+    root.querySelectorAll('.horizontal-calendar').forEach(table => {
+      const headers = [...table.querySelectorAll('thead th')];
+      table.querySelectorAll('tbody tr:last-child td:has(> .court-status.open)').forEach(cell => {
+        if (cell.querySelector('.participant-hover')) return;
+        const column = [...cell.parentElement.children].indexOf(cell);
+        const label = headers[column]?.textContent.trim();
+        const hour = Number(label?.split(':')[0]);
+        const dateLink = cell.querySelector('a[href*="date="]');
+        if (!Number.isFinite(hour) || !dateLink) return;
+        const date = new URL(dateLink.href).searchParams.get('date');
+        const box = document.createElement('aside');
+        box.className = 'participant-hover';
+        box.setAttribute('aria-live', 'polite');
+        cell.append(box);
+        let loaded = false;
+        const show = async () => {
+          if (loaded) return;
+          loaded = true;
+          box.textContent = 'Loading participants…';
+          renderNames(box, await loadNames(date, hour * 60, hour * 60 + 60));
+        };
+        cell.addEventListener('pointerenter', show);
+        cell.addEventListener('focusin', show);
+      });
+    });
+    const panel = root.querySelector('.selection-panel');
+    const form = panel?.querySelector('form[action="/attendance"]');
+    if (panel && form && !panel.querySelector('.selection-participants')) {
+      const date = form.querySelector('input[name="date"]')?.value;
+      const starts = [...form.querySelectorAll('input[name="range_start"]')];
+      const ends = [...form.querySelectorAll('input[name="range_end"]')];
+      if (date && starts.length === ends.length) {
+        const container = document.createElement('section');
+        container.className = 'selection-participants';
+        container.textContent = 'Loading participants…';
+        form.before(container);
+        Promise.all(starts.map((input, index) => loadNames(date, Number(input.value), Number(ends[index].value))))
+          .then(groups => renderNames(container, [...new Set(groups.flat())].sort((a, b) => a.localeCompare(b))));
+      }
+    }
+  };
+  enhance(document);
+  document.addEventListener('htmx:afterSwap', event => enhance(event.target));
+})();
+
+(() => {
+  const disablePlannedCells = root => {
+    root.querySelectorAll('.plan-marker').forEach(marker => {
+      const cell = marker.closest('td, li');
+      if (!cell) return;
+      cell.classList.add('existing-plan-cell');
+      cell.querySelectorAll('a[href*="time="]').forEach(link => {
+        link.removeAttribute('href');
+        link.setAttribute('aria-disabled', 'true');
+        link.setAttribute('title', 'Already in your planned attendance');
+      });
+    });
+  };
+  disablePlannedCells(document);
+  document.addEventListener('htmx:afterSwap', event => disablePlannedCells(event.target));
 })();

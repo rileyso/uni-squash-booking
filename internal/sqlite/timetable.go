@@ -111,19 +111,36 @@ func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDat
 	if _, err := transaction.ExecContext(ctx, `INSERT INTO accounts (player_code, full_username, display_name, pin_hash, member_status, created_at_utc) VALUES ('1111', 'john#1111', 'John', ?, 'member', 0)`, trialPINHash); err != nil {
 		return fmt.Errorf("insert synthetic trial account: %w", err)
 	}
-	for member := 1; member <= 12; member++ {
-		code := fmt.Sprintf("%04d", member)
-		result, err := transaction.ExecContext(ctx, `INSERT INTO accounts (player_code, full_username, display_name, pin_hash, member_status, created_at_utc) VALUES (?, ?, ?, 'synthetic-disabled', 'member', 0)`, code, "synthetic"+code+"#"+code, fmt.Sprintf("Player %d", member))
+	dummyNames := []string{"Alex Chen", "Maya Singh", "Sam Taylor", "Jordan Lee", "Priya Nair", "Noah Williams", "Sofia Martinez", "Ethan Brown", "Chloe Nguyen", "Liam Wilson", "Ava Thompson", "Ben Davis"}
+	accountIDs := make([]int64, 0, len(dummyNames))
+	for member, displayName := range dummyNames {
+		memberNumber := member + 1
+		code := fmt.Sprintf("%04d", memberNumber)
+		result, err := transaction.ExecContext(ctx, `INSERT INTO accounts (player_code, full_username, display_name, pin_hash, member_status, created_at_utc) VALUES (?, ?, ?, 'synthetic-disabled', 'member', 0)`, code, "synthetic"+code+"#"+code, displayName)
 		if err != nil {
 			return fmt.Errorf("insert synthetic account: %w", err)
 		}
 		accountID, _ := result.LastInsertId()
+		accountIDs = append(accountIDs, accountID)
 		if _, err := transaction.ExecContext(ctx, `INSERT INTO attendance_plans (account_id, attendance_date, start_minute, end_minute, created_at_utc, updated_at_utc) VALUES (?, ?, 1080, 1200, 0, 0)`, accountID, today.AddDays(5, location).String()); err != nil {
 			return fmt.Errorf("insert synthetic attendance: %w", err)
 		}
-		if member <= 5 {
+		if memberNumber <= 5 {
 			if _, err := transaction.ExecContext(ctx, `INSERT INTO attendance_plans (account_id, attendance_date, start_minute, end_minute, created_at_utc, updated_at_utc) VALUES (?, ?, 1080, 1200, 0, 0)`, accountID, today.AddDays(1, location).String()); err != nil {
 				return fmt.Errorf("insert sparse synthetic attendance: %w", err)
+			}
+		}
+	}
+	for offset := 0; offset < 14; offset++ {
+		if offset == 1 || offset == 5 {
+			continue
+		}
+		date := today.AddDays(offset, location)
+		start := map[time.Weekday]int{time.Monday: 960, time.Tuesday: 960, time.Wednesday: 900, time.Thursday: 960, time.Friday: 900, time.Saturday: 720, time.Sunday: 720}[date.Weekday(location)]
+		for attendee := 0; attendee < 3; attendee++ {
+			accountID := accountIDs[(offset*2+attendee)%len(accountIDs)]
+			if _, err := transaction.ExecContext(ctx, `INSERT INTO attendance_plans (account_id, attendance_date, start_minute, end_minute, created_at_utc, updated_at_utc) VALUES (?, ?, ?, ?, 0, 0)`, accountID, date.String(), start, start+120); err != nil {
+				return fmt.Errorf("insert distributed synthetic attendance: %w", err)
 			}
 		}
 	}

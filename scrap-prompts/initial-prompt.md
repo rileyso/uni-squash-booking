@@ -1,4 +1,6 @@
-# Sydney University Squash Club Booking System
+## Project
+
+Sydney University Squash Club Attendance System
 
 I want to design and build a court-attendance web application for the Sydney University Squash Club. Right now the focus is just the single web page that is a calendar-sytle dashboard
 
@@ -12,6 +14,53 @@ The application will be built with:
 - PostgreSQL or SQLite, depending on what we decide during architecture planning
 
 The club currently serves approximately 231 members.
+
+## Current phase
+
+The project is in product discovery and architecture planning.
+
+Do not begin full implementation until the product scope, domain model, booking rules, and architecture have been reviewed and approved.
+
+## Technology direction
+
+The preferred stack is:
+
+* Go
+* Go standard library `net/http` where practical
+* HTMX for browser interactions
+* Server-rendered Go HTML templates
+* Google calendar API compatibilty to match up the calendar and sync google calendar events into the calendar
+* PostgreSQL for production data
+* Minimal JavaScript
+* Accessible and responsive HTML
+* Docker Compose for local database infrastructure
+
+Do not introduce React, Next.js, Vue, a separate JavaScript API frontend, microservices, Kubernetes, or unnecessary abstraction unless there is a documented reason.
+
+## Initial delivery strategy
+
+Prefer an MVP that proves the complete booking workflow:
+
+1. User views court availability for a selected date.
+2. Member selects an available slot.
+3. Member puts in attendance for that slot
+4. The capacity for slots are unlimited given that the day 
+4. The server validates club rules.
+5. The updated schedule is returned through HTMX.
+6. An administrator can block or release court time.
+
+Expand into competition management, player history, payments, notifications and grading only after the core booking workflow is dependable.
+
+## Commands
+
+When implementation begins, document and maintain the canonical commands here:
+
+* Run application: `go run ./cmd/web`
+* Run tests: `go test ./...`
+* Format code: `gofmt -w .`
+* Static analysis: `go vet ./...`
+
+These commands may be adjusted once the repository structure is approved.
 
 ## Reference design
 

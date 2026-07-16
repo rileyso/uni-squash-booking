@@ -9,8 +9,10 @@ Club size: Approximately 231 members
 Decision update, 16 July 2026: members may hold multiple planned attendance
 intervals on the same Sydney date when they intend to attend separated sessions.
 Each interval remains venue-wide, independently validated, and continuously
-playable. Confirming a same-day multi-interval selection replaces that member's
-existing intervals for that date.
+playable. Decision update, 16 July 2026: confirming newly selected cells adds
+them to that member's existing intervals for the date. Existing planned cells
+cannot be selected again, and adjacent or overlapping intervals are normalised
+into one interval in storage and summaries.
 
 Engineering review note: the product vision below remains approved, but the first implementation release was reduced on 14 July 2026. Release 1 is defined in `ENGINEERING_PLAN.md`; explicitly deferred capabilities remain part of the post-validation product scope rather than launch requirements.
 
@@ -160,7 +162,9 @@ Colour must not be the only status indicator. Every status also requires a text 
 - Registration is allowed whenever at least one court is open during each full selected interval. If only one court is open, the confirmation repeats the reduced-capacity warning.
 - Continuous venue availability is sufficient: the particular open court may change at a 30-minute boundary as long as at least one court remains open in every selected bucket.
 - Each account may hold multiple non-overlapping attendance intervals per day when the member plans to attend separated sessions.
-- Members may remove or replace their own intervals.
+- Members may add to their own intervals or remove their planned attendance for
+  the date. Existing planned cells cannot be selected again; adjacent additions
+  are combined in summaries.
 - Attendance can be registered no more than 14 days ahead.
 - The 14-day window contains today plus the next 13 calendar dates in the `Australia/Sydney` timezone.
 - A member may remove an entry throughout its 30-day named-history period.

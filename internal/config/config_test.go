@@ -36,7 +36,7 @@ func TestPublicCreationAlsoRequiresRecoveryApproval(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	config, err := Load(env(map[string]string{"APP_ENV": "production", "RECOVERY_GENERATION": "generation-1", "APPROVAL_MANIFEST": path}))
+	config, err := Load(env(map[string]string{"APP_ENV": "production", "RECOVERY_GENERATION": "generation-1", "APPROVAL_MANIFEST": path, "DEVICE_COOKIE_SECRET": "a-production-secret-with-at-least-32-characters", "ADMIN_USERNAME": "riley", "ADMIN_PASSWORD_HASH": "encoded-production-hash"}))
 	if err != nil {
 		t.Fatal(err)
 	}

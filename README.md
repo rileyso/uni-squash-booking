@@ -26,7 +26,7 @@ The development service is deliberately synthetic-only and binds to loopback. Th
 make run
 ```
 
-Then open `http://127.0.0.1:18080`. The service creates a disposable database under `data/`, loads obvious synthetic timetable fixtures, and never registers member identity routes in the current milestone.
+Then open `http://127.0.0.1:18080`. The service creates a disposable database under `data/` and loads obvious synthetic timetable and account fixtures.
 
 For development with automatic backend restarts, run:
 
@@ -45,3 +45,20 @@ make check
 ```
 
 Expected local tools: Go 1.26.4, `sqlc` 1.31.1, `goose` 3.27.1, and `jq` 1.8.1.
+
+## Synthetic moderation
+
+With the web process stopped, the deployment-local command accepts only an exact full username or four-digit player code:
+
+```sh
+go run ./cmd/moderate suspend --identifier 'john#1111'
+go run ./cmd/moderate reinstate --identifier '1111'
+```
+
+Permanent deletion requires the exact immutable username twice and a new path for a verified, transactionally consistent pre-action snapshot:
+
+```sh
+go run ./cmd/moderate delete --identifier 'john#1111' --confirm 'john#1111' --backup data/pre-delete.sqlite
+```
+
+Production deletion remains disabled unless the retention-and-deletion approval in the deployment manifest is valid.

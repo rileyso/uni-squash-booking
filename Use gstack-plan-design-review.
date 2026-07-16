@@ -1,0 +1,30 @@
+Use gstack-plan-design-review.
+
+Review the approved product plan for the Sydney Uni Squash booking app.
+
+The visual direction should take inspiration from the compact timetable
+layout of the referenced YepBooking badminton schedule, but it must not be
+a direct brand or asset copy.
+
+The product should feel:
+
+- fast;
+- practical;
+- usable on mobile;
+- accessible;
+- visually clear when distinguishing available, booked, unavailable,
+  competition and coaching slots.
+
+Concentrate on:
+
+- desktop weekly timetable;
+- mobile date and court navigation;
+- booking confirmation;
+- cancellation;
+- current-user booking visibility;
+- administrator blocking and recurring events;
+- empty, loading, conflict and error states.
+
+Ask me about meaningful visual or interaction decisions one at a time.
+Do not write production code yet. Record the approved design decisions
+in the project plan or a DESIGN.md file.

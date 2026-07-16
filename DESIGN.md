@@ -7,7 +7,9 @@ Product source: `PRODUCT_DESIGN.md`
 Decision update, 16 July 2026: the attendance confirmation surface supports
 multiple selected same-day intervals when a member plans to attend separated
 sessions. Each selected interval is shown with its own duration, and the total
-selected time is shown separately.
+selected time is shown separately. A later decision on 16 July 2026 makes cell
+selection additive: cells already in the member's plan are visibly disabled,
+and the confirmation summary combines adjacent existing and new cells.
 
 ## Design Objective
 
