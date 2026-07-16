@@ -23,6 +23,16 @@ func TestDevelopmentIsSyntheticAndLoopbackOnly(t *testing.T) {
 	}
 }
 
+func TestContainerDevelopmentMayListenInternally(t *testing.T) {
+	config, err := Load(env(map[string]string{"APP_ENV": "development", "APP_ADDR": "0.0.0.0:18080", "CONTAINER_DEVELOPMENT": "true"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Address != "0.0.0.0:18080" || !config.Synthetic {
+		t.Fatalf("unexpected config: %#v", config)
+	}
+}
+
 func TestProductionFailsClosed(t *testing.T) {
 	if _, err := Load(env(map[string]string{"APP_ENV": "production"})); err == nil {
 		t.Fatal("production without recovery generation was accepted")

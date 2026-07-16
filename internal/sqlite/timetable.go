@@ -12,9 +12,20 @@ import (
 
 type AnonymousTimetableData struct {
 	Weekly     []sqlcdb.WeeklySeries
+	Exceptions []ScheduleException
 	OneOffs    []sqlcdb.OneOffEvent
 	Social     []sqlcdb.SocialSession
 	Attendance []sqlcdb.ListAnonymousAttendanceIntervalsRow
+}
+
+type ScheduleException struct {
+	WeeklySeriesID int64
+	OccurrenceDate string
+	Cancelled      bool
+	Court          sql.NullInt64
+	Kind           sql.NullString
+	Start          sql.NullInt64
+	End            sql.NullInt64
 }
 
 func (s *Store) LoadAnonymousTimetable(ctx context.Context, from, through domain.CivilDate) (AnonymousTimetableData, error) {
@@ -22,6 +33,22 @@ func (s *Store) LoadAnonymousTimetable(ctx context.Context, from, through domain
 	weekly, err := s.queries.ListWeeklySeries(ctx, parameters)
 	if err != nil {
 		return AnonymousTimetableData{}, fmt.Errorf("list weekly schedule: %w", err)
+	}
+	rows, err := s.readers.QueryContext(ctx, "SELECT weekly_series_id, occurrence_date, cancelled, replacement_court, replacement_kind, replacement_start_minute, replacement_end_minute FROM schedule_exceptions WHERE occurrence_date BETWEEN ? AND ? ORDER BY occurrence_date, weekly_series_id", from.String(), through.String())
+	if err != nil {
+		return AnonymousTimetableData{}, fmt.Errorf("list schedule exceptions: %w", err)
+	}
+	var exceptions []ScheduleException
+	for rows.Next() {
+		var exception ScheduleException
+		if err := rows.Scan(&exception.WeeklySeriesID, &exception.OccurrenceDate, &exception.Cancelled, &exception.Court, &exception.Kind, &exception.Start, &exception.End); err != nil {
+			rows.Close()
+			return AnonymousTimetableData{}, err
+		}
+		exceptions = append(exceptions, exception)
+	}
+	if err := rows.Close(); err != nil {
+		return AnonymousTimetableData{}, err
 	}
 	oneOffs, err := s.queries.ListOneOffEvents(ctx, sqlcdb.ListOneOffEventsParams{FromDate: from.String(), ThroughDate: through.String()})
 	if err != nil {
@@ -35,7 +62,7 @@ func (s *Store) LoadAnonymousTimetable(ctx context.Context, from, through domain
 	if err != nil {
 		return AnonymousTimetableData{}, fmt.Errorf("list anonymous attendance: %w", err)
 	}
-	return AnonymousTimetableData{Weekly: weekly, OneOffs: oneOffs, Social: social, Attendance: attendance}, nil
+	return AnonymousTimetableData{Weekly: weekly, Exceptions: exceptions, OneOffs: oneOffs, Social: social, Attendance: attendance}, nil
 }
 
 func (s *Store) LoadSyntheticFixtures(ctx context.Context, today domain.CivilDate, location *time.Location, trialPINHash string) error {

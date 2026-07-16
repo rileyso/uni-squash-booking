@@ -305,8 +305,8 @@ func (s *Service) ValidateAttendance(ctx context.Context, dateValue string, star
 	}
 	for minute := interval.StartMinute; minute < interval.EndMinute; minute += 30 {
 		bucket, _ := domain.NewInterval(minute, minute+30)
-		one := courtState(data.Weekly, data.OneOffs, date, 1, bucket, s.location)
-		two := courtState(data.Weekly, data.OneOffs, date, 2, bucket, s.location)
+		one := courtState(data.Weekly, data.Exceptions, data.OneOffs, date, 1, bucket, s.location)
+		two := courtState(data.Weekly, data.Exceptions, data.OneOffs, date, 2, bucket, s.location)
 		if one.Class != "open" && two.Class != "open" {
 			return ErrConflict
 		}

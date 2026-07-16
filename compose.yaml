@@ -1,0 +1,23 @@
+services:
+  squash:
+    build:
+      context: .
+    environment:
+      APP_ENV: development
+      APP_ADDR: 0.0.0.0:18080
+      CONTAINER_DEVELOPMENT: "true"
+      DATABASE_PATH: /data/squash.sqlite
+      RECOVERY_GENERATION: synthetic-compose-generation
+    ports:
+      - "127.0.0.1:18080:18080"
+    volumes:
+      - squash-data:/data
+    healthcheck:
+      test: ["CMD", "/squash", "-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  squash-data:

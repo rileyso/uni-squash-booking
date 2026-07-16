@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 type AdminScheduleEntry struct {
@@ -70,4 +71,46 @@ func (s *Store) DeleteScheduleEntry(ctx context.Context, entryType string, id in
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (s *Store) ReplaceWeeklyOccurrence(ctx context.Context, id int64, date string, court int, kind string, start, end int) error {
+	result, err := s.writer.ExecContext(ctx, "INSERT INTO schedule_exceptions (weekly_series_id, occurrence_date, cancelled, replacement_court, replacement_kind, replacement_start_minute, replacement_end_minute) SELECT id, ?, 0, ?, ?, ?, ? FROM weekly_series WHERE id = ? ON CONFLICT(weekly_series_id, occurrence_date) DO UPDATE SET cancelled = 0, replacement_court = excluded.replacement_court, replacement_kind = excluded.replacement_kind, replacement_start_minute = excluded.replacement_start_minute, replacement_end_minute = excluded.replacement_end_minute", date, court, kind, start, end, id)
+	if err != nil {
+		return err
+	}
+	changed, _ := result.RowsAffected()
+	if changed != 1 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) ReplaceWeeklyFuture(ctx context.Context, id int64, occurrenceDate, oldEndDate string, court int, kind, title string, weekday, start, end int, confirmDeleteExceptions bool) error {
+	tx, err := s.writer.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var futureExceptions int
+	if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM schedule_exceptions WHERE weekly_series_id = ? AND occurrence_date >= ?", id, occurrenceDate).Scan(&futureExceptions); err != nil {
+		return err
+	}
+	if futureExceptions > 0 && !confirmDeleteExceptions {
+		return errors.New("future exceptions require explicit deletion confirmation")
+	}
+	result, err := tx.ExecContext(ctx, "UPDATE weekly_series SET effective_end_date = ? WHERE id = ? AND effective_start_date < ? AND (effective_end_date IS NULL OR effective_end_date >= ?)", oldEndDate, id, occurrenceDate, occurrenceDate)
+	if err != nil {
+		return err
+	}
+	changed, _ := result.RowsAffected()
+	if changed != 1 {
+		return sql.ErrNoRows
+	}
+	if _, err := tx.ExecContext(ctx, "INSERT INTO weekly_series (court, kind, title, iso_weekday, start_minute, end_minute, effective_start_date) VALUES (?, ?, ?, ?, ?, ?, ?)", court, kind, title, weekday, start, end, occurrenceDate); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM schedule_exceptions WHERE weekly_series_id = ? AND occurrence_date >= ?", id, occurrenceDate); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

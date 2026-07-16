@@ -52,3 +52,33 @@ func TestAdminScheduleRejectsInvalidBoundariesAndVocabulary(t *testing.T) {
 		}
 	}
 }
+
+func TestReplaceWeeklyScheduleOccurrenceAndFutureScopes(t *testing.T) {
+	service := testService(t)
+	ctx := context.Background()
+	if err := service.CreateWeeklySchedule(ctx, 1, "coaching", "Series", 2, 960, 1020, "2026-07-14"); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := service.AdminSchedule(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var id int64
+	for _, entry := range entries {
+		if entry.Type == "weekly" && entry.Title == "Series" {
+			id = entry.ID
+		}
+	}
+	if err := service.ReplaceWeeklySchedule(ctx, id, "occurrence", "2026-07-21", "competition", "Series", 2, 2, 990, 1050, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.ReplaceWeeklySchedule(ctx, id, "occurrence", "2026-08-04", "coaching", "Series", 1, 2, 960, 1020, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.ReplaceWeeklySchedule(ctx, id, "future", "2026-07-28", "open", "Replacement", 1, 2, 1020, 1080, false); err == nil {
+		t.Fatal("future exceptions were deleted without explicit confirmation")
+	}
+	if err := service.ReplaceWeeklySchedule(ctx, id, "future", "2026-07-28", "open", "Replacement", 1, 2, 1020, 1080, true); err != nil {
+		t.Fatal(err)
+	}
+}

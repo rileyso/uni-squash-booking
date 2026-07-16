@@ -78,6 +78,7 @@ func (s *Server) Handler() http.Handler {
 		mux.HandleFunc("POST /admin/schedule/weekly", s.adminCreateWeeklySchedule)
 		mux.HandleFunc("POST /admin/schedule/dated", s.adminCreateDatedSchedule)
 		mux.HandleFunc("POST /admin/schedule/social", s.adminCreateSocialSession)
+		mux.HandleFunc("POST /admin/schedule/weekly/{id}/replace", s.adminReplaceWeeklySchedule)
 		mux.HandleFunc("POST /admin/schedule/{type}/{id}/delete", s.adminDeleteScheduleEntry)
 	}
 	if s.app.NamedAttendanceEnabled() {
@@ -381,6 +382,7 @@ type adminSchedulePageData struct {
 	CSRF      string
 	Error     string
 	Entries   []sqlite.AdminScheduleEntry
+	Weekday   int
 }
 
 func scheduleTime(minute int) string {
@@ -573,6 +575,23 @@ func (s *Server) adminCreateSocialSession(w http.ResponseWriter, r *http.Request
 		return
 	}
 	s.finishAdminScheduleMutation(w, r, s.app.CreateSocialSession(r.Context(), weekday, start, end, r.FormValue("effective")))
+}
+
+func (s *Server) adminReplaceWeeklySchedule(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.parseAdminScheduleForm(w, r); !ok {
+		return
+	}
+	id, e0 := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	court, e1 := formInt(r, "court")
+	weekday, e2 := formInt(r, "weekday")
+	start, e3 := formInt(r, "start")
+	end, e4 := formInt(r, "end")
+	if e0 != nil || e1 != nil || e2 != nil || e3 != nil || e4 != nil {
+		s.finishAdminScheduleMutation(w, r, app.ErrInvalidInput)
+		return
+	}
+	err := s.app.ReplaceWeeklySchedule(r.Context(), id, r.FormValue("scope"), r.FormValue("occurrence"), r.FormValue("kind"), r.FormValue("title"), court, weekday, start, end, r.FormValue("confirm_delete_exceptions") == "yes")
+	s.finishAdminScheduleMutation(w, r, err)
 }
 
 func (s *Server) adminDeleteScheduleEntry(w http.ResponseWriter, r *http.Request) {

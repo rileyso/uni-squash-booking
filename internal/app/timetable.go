@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rileyso/uni-squash-booking/internal/domain"
+	"github.com/rileyso/uni-squash-booking/internal/sqlite"
 	"github.com/rileyso/uni-squash-booking/internal/sqlite/sqlcdb"
 )
 
@@ -136,8 +137,8 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		day.SocialTime = socialTimeOnDate(data.Social, date, s.location)
 		for minute := 600; minute <= 1320; minute += 60 {
 			interval, _ := domain.NewInterval(minute, minute+60)
-			one := courtState(data.Weekly, data.OneOffs, date, 1, interval, s.location)
-			two := courtState(data.Weekly, data.OneOffs, date, 2, interval, s.location)
+			one := courtState(data.Weekly, data.Exceptions, data.OneOffs, date, 1, interval, s.location)
+			two := courtState(data.Weekly, data.Exceptions, data.OneOffs, date, 2, interval, s.location)
 			count := attendanceCount(data.Attendance, date.String(), interval)
 			band, class := turnoutBand(count)
 			day.Slots = append(day.Slots, Slot{StartMinute: minute, TimeLabel: minuteLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open"), Selected: selectedMinuteSet[minute]})
@@ -149,8 +150,8 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 	}
 	for minute := 600; minute <= 1320; minute += 60 {
 		interval, _ := domain.NewInterval(minute, minute+60)
-		one := courtState(data.Weekly, data.OneOffs, selected, 1, interval, s.location)
-		two := courtState(data.Weekly, data.OneOffs, selected, 2, interval, s.location)
+		one := courtState(data.Weekly, data.Exceptions, data.OneOffs, selected, 1, interval, s.location)
+		two := courtState(data.Weekly, data.Exceptions, data.OneOffs, selected, 2, interval, s.location)
 		count := attendanceCount(data.Attendance, selected.String(), interval)
 		band, class := turnoutBand(count)
 		dashboard.DesktopSlots = append(dashboard.DesktopSlots, Slot{StartMinute: minute, TimeLabel: hourLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open"), Selected: selectedMinuteSet[minute]})
@@ -307,16 +308,37 @@ func socialTimeOnDate(rows []sqlcdb.SocialSession, date domain.CivilDate, locati
 	return ""
 }
 
-func courtState(weekly []sqlcdb.WeeklySeries, oneOffs []sqlcdb.OneOffEvent, date domain.CivilDate, court int64, interval domain.Interval, location *time.Location) CourtState {
+func courtState(weekly []sqlcdb.WeeklySeries, exceptions []sqlite.ScheduleException, oneOffs []sqlcdb.OneOffEvent, date domain.CivilDate, court int64, interval domain.Interval, location *time.Location) CourtState {
 	status := "lights_off"
 	title := ""
 	priority := 1
 	for _, row := range weekly {
-		if row.Court != court || row.IsoWeekday != int64(isoWeekday(date.Weekday(location))) || date.String() < row.EffectiveStartDate || (row.EffectiveEndDate.Valid && date.String() > row.EffectiveEndDate.String) || !overlaps(row.StartMinute, row.EndMinute, interval) {
+		rowCourt, rowKind, rowStart, rowEnd := row.Court, row.Kind, row.StartMinute, row.EndMinute
+		cancelled := false
+		for _, exception := range exceptions {
+			if exception.WeeklySeriesID != row.ID || exception.OccurrenceDate != date.String() {
+				continue
+			}
+			cancelled = exception.Cancelled
+			if exception.Court.Valid {
+				rowCourt = exception.Court.Int64
+			}
+			if exception.Kind.Valid {
+				rowKind = exception.Kind.String
+			}
+			if exception.Start.Valid {
+				rowStart = exception.Start.Int64
+			}
+			if exception.End.Valid {
+				rowEnd = exception.End.Int64
+			}
+			break
+		}
+		if cancelled || rowCourt != court || row.IsoWeekday != int64(isoWeekday(date.Weekday(location))) || date.String() < row.EffectiveStartDate || (row.EffectiveEndDate.Valid && date.String() > row.EffectiveEndDate.String) || !overlaps(rowStart, rowEnd, interval) {
 			continue
 		}
-		if candidate := statusPriority(row.Kind); candidate >= priority {
-			status, title, priority = row.Kind, row.Title, candidate
+		if candidate := statusPriority(rowKind); candidate >= priority {
+			status, title, priority = rowKind, row.Title, candidate
 		}
 	}
 	for _, row := range oneOffs {

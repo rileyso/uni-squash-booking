@@ -38,6 +38,13 @@ The development watcher restarts the loopback-only synthetic Go service after
 changes to Go, HTML, CSS, SQL, JSON, or YAML source files. Refresh the browser
 after the restart to request the rebuilt page.
 
+The single-service container binds only to host loopback and stores its
+synthetic SQLite database in a named volume:
+
+```sh
+docker compose up --build
+```
+
 Run all generation, tests, race checks, vetting, and the 80% project-owned coverage gate with:
 
 ```sh
@@ -62,3 +69,24 @@ go run ./cmd/moderate delete --identifier 'john#1111' --confirm 'john#1111' --ba
 ```
 
 Production deletion remains disabled unless the retention-and-deletion approval in the deployment manifest is valid.
+
+## Synthetic backup and recovery
+
+Create a verified online snapshot while the service is stopped:
+
+```sh
+go run ./cmd/recovery backup --database data/squash.sqlite --destination data/backup.sqlite --generation synthetic-development-generation
+```
+
+A restore always creates a new database in recovery lockdown. Normal startup
+cannot become ready until restored identities and all sessions are scrubbed,
+then lockdown is explicitly cleared with the same new generation:
+
+```sh
+go run ./cmd/recovery restore --source data/backup.sqlite --destination data/restored.sqlite --generation recovery-2026-07-17
+go run ./cmd/recovery scrub-identities --database data/restored.sqlite --generation recovery-2026-07-17
+go run ./cmd/recovery clear-lockdown --database data/restored.sqlite --generation recovery-2026-07-17
+```
+
+Identity scrubbing is irreversible. Restored planned-attendance rows survive
+only as anonymous aggregates.

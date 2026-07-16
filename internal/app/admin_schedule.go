@@ -53,3 +53,22 @@ func (s *Service) DeleteScheduleEntry(ctx context.Context, entryType string, id 
 	}
 	return s.store.DeleteScheduleEntry(ctx, entryType, id)
 }
+
+func (s *Service) ReplaceWeeklySchedule(ctx context.Context, id int64, scope, occurrence, kind, title string, court, weekday, start, end int, confirmDeleteExceptions bool) error {
+	if id <= 0 || !validScheduleInput(court, weekday, start, end, kind, title) {
+		return ErrInvalidInput
+	}
+	date, err := domain.ParseCivilDate(occurrence)
+	if err != nil {
+		return ErrInvalidInput
+	}
+	switch scope {
+	case "occurrence":
+		return s.store.ReplaceWeeklyOccurrence(ctx, id, occurrence, court, kind, start, end)
+	case "future":
+		oldEnd := date.AddDays(-1, s.location).String()
+		return s.store.ReplaceWeeklyFuture(ctx, id, occurrence, oldEnd, court, kind, strings.TrimSpace(title), weekday, start, end, confirmDeleteExceptions)
+	default:
+		return ErrInvalidInput
+	}
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,18 @@ import (
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "-healthcheck" {
+		response, err := http.Get("http://127.0.0.1:18080/readyz")
+		if err != nil || response.StatusCode != http.StatusNoContent {
+			if err == nil {
+				response.Body.Close()
+				err = fmt.Errorf("readiness returned %s", response.Status)
+			}
+			log.Fatal(err)
+		}
+		response.Body.Close()
+		return
+	}
 	configuration, err := config.Load(os.Getenv)
 	if err != nil {
 		log.Fatal(err)

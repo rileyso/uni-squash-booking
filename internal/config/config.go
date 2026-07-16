@@ -81,7 +81,7 @@ func Load(getenv func(string) string) (Config, error) {
 
 	config := Config{Environment: environment, Address: address, DatabasePath: databasePath, RecoveryGeneration: recoveryGeneration, DeviceCookieSecret: strings.TrimSpace(getenv("DEVICE_COOKIE_SECRET")), AdminUsername: strings.TrimSpace(getenv("ADMIN_USERNAME")), AdminPasswordHash: strings.TrimSpace(getenv("ADMIN_PASSWORD_HASH")), Synthetic: environment != Production}
 	if environment != Production {
-		if !isLoopback(address) {
+		if !isLoopback(address) && strings.TrimSpace(getenv("CONTAINER_DEVELOPMENT")) != "true" {
 			return Config{}, errors.New("development and test must bind to loopback")
 		}
 		// M3 identity functionality is available only with disposable synthetic
