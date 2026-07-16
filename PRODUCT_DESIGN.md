@@ -6,6 +6,12 @@ Date: 14 July 2026
 Product stage: Pre-product MVP  
 Club size: Approximately 231 members
 
+Decision update, 16 July 2026: members may hold multiple planned attendance
+intervals on the same Sydney date when they intend to attend separated sessions.
+Each interval remains venue-wide, independently validated, and continuously
+playable. Confirming a same-day multi-interval selection replaces that member's
+existing intervals for that date.
+
 Engineering review note: the product vision below remains approved, but the first implementation release was reduced on 14 July 2026. Release 1 is defined in `ENGINEERING_PLAN.md`; explicitly deferred capabilities remain part of the post-validation product scope rather than launch requirements.
 
 Access-model note: engineering decisions D13 and D14 propose a stable public dashboard URL and unrestricted public account creation rather than a token-bearing club-shared link. These changes are conditional on explicit committee approval. Release 1 exposes upcoming named plans only; the 30-day public named-history interface described below is deferred until after the turnout hypothesis is tested.
@@ -146,15 +152,15 @@ Colour must not be the only status indicator. Every status also requires a text 
 
 ### Registering attendance
 
-- A signed-in member chooses a day, arrival time, and departure time; the interface also shows the resulting expected duration.
+- A signed-in member chooses a day and one or more arrival/departure intervals; the interface also shows the resulting expected duration for each interval and the total selected duration.
 - Time is selected in 30-minute increments.
 - An interval has a 30-minute minimum, cannot cross midnight, and cannot extend beyond that day's final playable light-off time.
 - Attendance uses half-open time intervals `[arrival, departure)`: a member leaving at 19:00 does not count in the 19:00-19:30 turnout bucket.
 - Attendance is venue-wide; the member does not select Court 1 or Court 2.
-- Registration is allowed whenever at least one court is open during the full selected interval. If only one court is open, the confirmation repeats the reduced-capacity warning.
+- Registration is allowed whenever at least one court is open during each full selected interval. If only one court is open, the confirmation repeats the reduced-capacity warning.
 - Continuous venue availability is sufficient: the particular open court may change at a 30-minute boundary as long as at least one court remains open in every selected bucket.
-- Each account may hold at most one attendance interval per day.
-- Members may remove or replace their own interval.
+- Each account may hold multiple non-overlapping attendance intervals per day when the member plans to attend separated sessions.
+- Members may remove or replace their own intervals.
 - Attendance can be registered no more than 14 days ahead.
 - The 14-day window contains today plus the next 13 calendar dates in the `Australia/Sydney` timezone.
 - A member may remove an entry throughout its 30-day named-history period.
@@ -185,10 +191,10 @@ Colour must not be the only status indicator. Every status also requires a text 
 3. Check official-session markers, light hours, and court-specific occupations.
 4. Create a lightweight account or unlock an existing account with full username and PIN.
 5. Choose an arrival time and duration in 30-minute increments.
-6. Review the resulting interval and privacy notice.
+6. Review the resulting intervals and privacy notice.
 7. Confirm attendance.
 8. See the forecast and `Your plans` update immediately.
-9. Later, remove or replace the interval if plans change.
+9. Later, remove or replace the intervals if plans change.
 
 ## New-Player Workflow
 

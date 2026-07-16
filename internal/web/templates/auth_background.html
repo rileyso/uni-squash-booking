@@ -1,0 +1,47 @@
+{{define "auth-background"}}
+<div class="auth-app-background" inert aria-hidden="true">
+  <div class="app-frame">
+    <aside class="sidebar" aria-label="Club navigation">
+      <div class="masthead"><span class="club-mark">SU</span><div><strong>Sydney Uni Squash</strong><span></span></div></div>
+      <nav><span class="active">▦ <span>Attendance</span></span><span>ⓘ <span>Club information</span></span></nav>
+      <section class="club-info"><h2>New to the club</h2><p>Location: Manning Squash Courts (A24), contact and WhatsApp details are awaiting committee-approved copy.</p></section>
+    </aside>
+    <main>
+      <header class="page-header"><div><p class="eyebrow"></p><h1>Manning Squash Courts (A24)</h1></div><span class="account-state">{{if .Member.ID}}{{.Member.DisplayName}}{{else}}Sign in{{end}}</span></header>
+      <p class="orientation">See when people plan to play. Attendance does not reserve a court.</p>
+      <div class="date-navigation-container"><nav class="date-navigation" aria-label="Timetable dates">
+        <div class="date-anchor">
+          <span><svg class="date-arrow" viewBox="0 0 16 12"><path d="M6.5 1.5 2 6l4.5 4.5M2 6h13"/></svg></span>
+          <strong>{{range .Dashboard.Days}}{{if .Selected}}{{.DateShort}}{{end}}{{end}}</strong>
+          <span><svg class="date-arrow" viewBox="0 0 16 12"><path d="m9.5 1.5 4.5 4.5-4.5 4.5M14 6H1"/></svg></span>
+        </div>
+        <div class="date-strip">{{range .Dashboard.DateChoices}}<span class="{{if .Today}}today{{end}}" {{if .Selected}}aria-current="date"{{end}}><strong>{{if .Today}}Today{{else}}{{.DayName}} {{.DateShort}}{{end}}</strong></span>{{end}}</div>
+      </nav></div>
+      <section aria-labelledby="auth-background-timetable-heading">
+        <h2 id="auth-background-timetable-heading" class="visually-hidden">Venue turnout and court status timetable</h2>
+        <div class="desktop-timetable">
+          <table class="horizontal-calendar">
+            <thead><tr><th scope="col"><span class="visually-hidden">Court and time</span></th>{{range .Dashboard.DesktopSlots}}<th scope="col"><time>{{.TimeLabel}}</time></th>{{end}}</tr></thead>
+            <tbody>
+              <tr class="court-row"><th scope="row">Court 1</th>{{range .Dashboard.DesktopSlots}}<td{{if .Selected}} class="selected-interval"{{end}}><span class="court-status {{.CourtOne.Class}}">{{if .CourtOne.Note}}<small>{{.CourtOne.Note}}</small>{{end}}</span></td>{{end}}</tr>
+              <tr class="court-row"><th scope="row">Court 2</th>{{range .Dashboard.DesktopSlots}}<td{{if .Selected}} class="selected-interval"{{end}}><span class="court-status {{.CourtTwo.Class}}">{{if .CourtTwo.Note}}<small>{{.CourtTwo.Note}}</small>{{end}}</span><span class="auth-cell-count">{{.Count}}</span></td>{{end}}</tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-timetable">
+          {{range .Dashboard.Days}}{{if .Selected}}<h3>{{.DayName}} {{.DateLabel}}</h3><div class="mobile-court-headings"><span></span><strong>Court 1</strong><strong>Court 2</strong></div><ol class="slot-list">{{range .Slots}}<li{{if .Selected}} class="selected-interval"{{end}}><time>{{.TimeLabel}}</time><span class="turnout {{.BandClass}}"><strong>{{.Count}}</strong></span><div class="court-rails"><span class="{{.CourtOne.Class}}">{{if .CourtOne.Note}}<small>{{.CourtOne.Note}}</small>{{end}}</span><span class="{{.CourtTwo.Class}}">{{if .CourtTwo.Note}}<small>{{.CourtTwo.Note}}</small>{{end}}</span></div></li>{{end}}</ol>{{end}}{{end}}
+        </div>
+        <ul class="calendar-key" aria-label="Court status key">
+          <li><span class="key-swatch lights-off"></span>Lights off</li>
+          <li><span class="key-swatch squads"></span>Squads</li>
+          <li><span class="key-swatch open"></span>Lights On</li>
+        </ul>
+        <section class="social-schedule" aria-labelledby="auth-background-social-heading">
+          <h3 id="auth-background-social-heading">Social</h3>
+          <div class="social-grid">{{range .Dashboard.Days}}<article><header>{{.DayName}} {{.DateShort}}</header><div>{{if .SocialTime}}<strong>{{.SocialTime}}</strong><span>Social</span>{{end}}</div></article>{{end}}</div>
+        </section>
+      </section>
+    </main>
+  </div>
+</div>
+{{end}}

@@ -20,7 +20,7 @@ Product discovery, interface design, and engineering planning are approved. Synt
 
 ## Local development
 
-The development service is deliberately synthetic-only and binds to loopback. The Makefile uses the checksum-verified user-local Go toolchain, so run it with:
+The development service is deliberately synthetic-only and binds to loopback. The Makefile uses the Go toolchain on `PATH`, so run it with:
 
 ```sh
 make run
@@ -44,4 +44,4 @@ Run all generation, tests, race checks, vetting, and the 80% project-owned cover
 make check
 ```
 
-Pinned local tools: Go 1.26.4, `sqlc` 1.31.1, `goose` 3.27.1, and `jq` 1.8.1.
+Expected local tools: Go 1.26.4, `sqlc` 1.31.1, `goose` 3.27.1, and `jq` 1.8.1.

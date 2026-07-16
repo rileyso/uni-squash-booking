@@ -59,7 +59,7 @@ func (s *Store) DeleteMemberSession(ctx context.Context, token []byte) error {
 }
 
 func (s *Store) PlansForAccount(ctx context.Context, accountID int64, from, through string) ([]AttendancePlan, error) {
-	rows, err := s.readers.QueryContext(ctx, `SELECT attendance_date, start_minute, end_minute FROM attendance_plans WHERE account_id = ? AND attendance_date BETWEEN ? AND ? ORDER BY attendance_date`, accountID, from, through)
+	rows, err := s.readers.QueryContext(ctx, `SELECT attendance_date, start_minute, end_minute FROM attendance_plans WHERE account_id = ? AND attendance_date BETWEEN ? AND ? ORDER BY attendance_date, start_minute, end_minute`, accountID, from, through)
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +77,29 @@ func (s *Store) PlansForAccount(ctx context.Context, accountID int64, from, thro
 
 func (s *Store) PlanForAccountDate(ctx context.Context, accountID int64, date string) (AttendancePlan, error) {
 	var p AttendancePlan
-	err := s.readers.QueryRowContext(ctx, `SELECT attendance_date, start_minute, end_minute FROM attendance_plans WHERE account_id = ? AND attendance_date = ?`, accountID, date).Scan(&p.Date, &p.StartMinute, &p.EndMinute)
+	err := s.readers.QueryRowContext(ctx, `SELECT attendance_date, start_minute, end_minute FROM attendance_plans WHERE account_id = ? AND attendance_date = ? ORDER BY start_minute, end_minute LIMIT 1`, accountID, date).Scan(&p.Date, &p.StartMinute, &p.EndMinute)
 	return p, err
 }
 
 func (s *Store) UpsertAttendance(ctx context.Context, accountID int64, date string, start, end int, now time.Time) error {
-	_, err := s.writer.ExecContext(ctx, `INSERT INTO attendance_plans (account_id, attendance_date, start_minute, end_minute, created_at_utc, updated_at_utc) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(account_id, attendance_date) DO UPDATE SET start_minute=excluded.start_minute, end_minute=excluded.end_minute, updated_at_utc=excluded.updated_at_utc`, accountID, date, start, end, now.Unix(), now.Unix())
+	return s.ReplaceAttendance(ctx, accountID, date, []AttendancePlan{{Date: date, StartMinute: start, EndMinute: end}}, now)
+}
+
+func (s *Store) ReplaceAttendance(ctx context.Context, accountID int64, date string, plans []AttendancePlan, now time.Time) error {
+	transaction, err := s.writer.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+	if _, err := transaction.ExecContext(ctx, `DELETE FROM attendance_plans WHERE account_id = ? AND attendance_date = ?`, accountID, date); err != nil {
+		return err
+	}
+	for _, plan := range plans {
+		if _, err := transaction.ExecContext(ctx, `INSERT INTO attendance_plans (account_id, attendance_date, start_minute, end_minute, created_at_utc, updated_at_utc) VALUES (?, ?, ?, ?, ?, ?)`, accountID, date, plan.StartMinute, plan.EndMinute, now.Unix(), now.Unix()); err != nil {
+			return err
+		}
+	}
+	err = transaction.Commit()
 	return err
 }
 

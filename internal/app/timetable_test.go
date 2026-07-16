@@ -56,6 +56,41 @@ func TestDashboardHasFixedBandsAndReducedCapacity(t *testing.T) {
 	if dashboard.Detail == nil || dashboard.Detail.TimeLabel != "18:00" {
 		t.Fatalf("interval detail missing: %#v", dashboard.Detail)
 	}
+	if !dashboard.HasSelectedInterval || dashboard.SelectedMinute != 1080 {
+		t.Fatalf("selected interval state missing: selected=%t minute=%d", dashboard.HasSelectedInterval, dashboard.SelectedMinute)
+	}
+}
+
+func TestDashboardTracksMultipleSelectedIntervals(t *testing.T) {
+	dashboard, err := testService(t).Dashboard(context.Background(), "2026-07-14", "960,1080")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !dashboard.HasSelectedInterval || dashboard.SelectedMinute != 1080 || dashboard.SelectedTimeQuery != "960,1080" || dashboard.SelectedTotal != "2 hours" {
+		t.Fatalf("multi-selection state missing: selected=%t minute=%d query=%q total=%q", dashboard.HasSelectedInterval, dashboard.SelectedMinute, dashboard.SelectedTimeQuery, dashboard.SelectedTotal)
+	}
+	if !dashboard.CanConfirmSelection || dashboard.SelectionNotice != "" {
+		t.Fatalf("split selection should be confirmable: can=%t notice=%q", dashboard.CanConfirmSelection, dashboard.SelectionNotice)
+	}
+	var selected int
+	for _, slot := range dashboard.DesktopSlots {
+		if slot.Selected {
+			selected++
+		}
+	}
+	if selected != 2 {
+		t.Fatalf("selected desktop slots = %d, want 2", selected)
+	}
+}
+
+func TestDashboardShowsPastWeekdaySelectionNotice(t *testing.T) {
+	dashboard, err := testService(t).Dashboard(context.Background(), "2026-07-13", "960")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dashboard.CanConfirmSelection || dashboard.SelectionNotice != "Week day no longer available." {
+		t.Fatalf("past weekday notice mismatch: can=%t notice=%q", dashboard.CanConfirmSelection, dashboard.SelectionNotice)
+	}
 }
 
 func TestDashboardRejectsDateOutsideWindow(t *testing.T) {

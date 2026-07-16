@@ -4,6 +4,11 @@ Status: APPROVED — PENDING COMMITTEE INPUT
 Date: 14 July 2026  
 Product source: `PRODUCT_DESIGN.md`
 
+Decision update, 16 July 2026: the attendance confirmation surface supports
+multiple selected same-day intervals when a member plans to attend separated
+sessions. Each selected interval is shown with its own duration, and the total
+selected time is shown separately.
+
 ## Design Objective
 
 Create a fast, practical, accessible attendance forecast for a university sports club. Members should understand expected turnout and court operating conditions within seconds, without mistaking the interface for a court-booking system.
@@ -194,7 +199,7 @@ Decision: seven day columns with time running vertically.
 
 - Selecting or focusing a turnout interval opens an anchored detail popover on desktop.
 - On mobile, the same action opens a bottom sheet with a visible heading, close control, and focus trap.
-- The detail surface lists public display names and their planned intervals, repeats the turnout label, and includes `Add my attendance` when the selected interval is eligible.
+- The detail surface lists public display names and their planned intervals, repeats the turnout label, and includes `Add my attendance` when selected intervals are eligible.
 - The triggering interval remains visibly selected while details are open.
 - Escape closes the desktop popover; close, back, or downward dismissal closes the mobile sheet without changing attendance.
 - On close, keyboard focus returns to the triggering interval.
@@ -237,8 +242,8 @@ Decision: seven day columns with time running vertically.
 
 - Desktop opens a right-side panel while the weekly timetable remains visible and the chosen interval stays highlighted.
 - Mobile opens a full-screen sheet rather than a cramped modal.
-- Step 1 selects date, 30-minute arrival, and departure constrained by current venue availability. An accessible two-handle visual range is synchronised with explicit arrival and departure fields, and the resulting duration is shown in text.
-- Step 2 presents a short review containing date, arrival, departure, venue-wide wording, current turnout, reduced-capacity or schedule warnings, public-name notice, and the primary `Confirm attendance` action.
+- Step 1 selects a date and one or more 30-minute interval ranges constrained by current venue availability. An accessible selection summary lists each interval and its duration.
+- Step 2 presents a short review containing date, selected intervals, total selected time, venue-wide wording, current turnout, reduced-capacity or schedule warnings, public-name notice, and the primary `Confirm attendance` action.
 - `Back` returns to the editable fields without losing values. `Close` exits without creating a plan and returns focus to the trigger.
 - Confirmation success closes the panel or sheet, updates the timetable and `Your plans`, and announces the result through an accessible live region.
 - The interface never labels this flow booking or court reservation.
@@ -255,7 +260,7 @@ Decision: seven day columns with time running vertically.
 ## Approved Current-User Visibility
 
 - Every interval covered by the signed-in member's plan has a persistent high-contrast outline and visible `Your plan` marker in addition to any colour treatment.
-- A compact `Your plans` summary above the timetable lists the member's upcoming date, arrival, departure, and `Change` / `Remove` actions.
+- A compact `Your plans` summary above the timetable lists the member's upcoming date, arrival/departure interval, and `Change` / `Remove` actions for each planned interval.
 - The summary collapses to one concise row per plan and never becomes a dashboard-card mosaic.
 - If the member has no upcoming plan, the summary becomes a quiet orientation line with `Add my attendance`, not an empty decorative container.
 - Personal markers remain distinguishable in Empty, Players attending, Good turnout, Crowded, and reduced-capacity states.
@@ -279,7 +284,7 @@ Decision: seven day columns with time running vertically.
 
 ## Approved Conflict States
 
-- The server revalidates the selected interval when the member confirms attendance; the browser's earlier timetable state is never treated as authoritative.
+- The server revalidates selected intervals when the member confirms attendance; the browser's earlier timetable state is never treated as authoritative.
 - If a schedule change makes the interval invalid, the confirmation panel or sheet remains open and preserves the member's date, arrival, and duration choices.
 - A prominent inline conflict message explains exactly what changed, identifies the affected time or court status, and states that attendance was not recorded.
 - The affected timetable intervals refresh behind the confirmation surface without moving focus or discarding input.

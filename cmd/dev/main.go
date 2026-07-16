@@ -24,6 +24,7 @@ var watchedExtensions = map[string]bool{
 	".css":  true,
 	".go":   true,
 	".html": true,
+	".js":   true,
 	".json": true,
 	".sql":  true,
 	".yaml": true,

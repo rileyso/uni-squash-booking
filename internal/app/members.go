@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -34,6 +35,11 @@ type Session struct {
 type Plan struct {
 	Date, DateLabel, StartLabel, EndLabel string
 	StartMinute, EndMinute                int
+}
+
+type AttendanceInterval struct {
+	StartMinute int
+	EndMinute   int
 }
 
 func (s *Service) IdentityEnabled() bool {
@@ -131,10 +137,36 @@ func (s *Service) PlanForDate(ctx context.Context, member Member, date string) (
 }
 
 func (s *Service) SaveAttendance(ctx context.Context, member Member, dateValue string, start, end int) error {
-	if err := s.ValidateAttendance(ctx, dateValue, start, end); err != nil {
+	return s.SaveAttendanceIntervals(ctx, member, dateValue, []AttendanceInterval{{StartMinute: start, EndMinute: end}})
+}
+
+func (s *Service) SaveAttendanceIntervals(ctx context.Context, member Member, dateValue string, intervals []AttendanceInterval) error {
+	if member.ID <= 0 || len(intervals) == 0 {
+		return ErrInvalidInput
+	}
+	ordered := append([]AttendanceInterval(nil), intervals...)
+	sort.Slice(ordered, func(i, j int) bool {
+		if ordered[i].StartMinute == ordered[j].StartMinute {
+			return ordered[i].EndMinute < ordered[j].EndMinute
+		}
+		return ordered[i].StartMinute < ordered[j].StartMinute
+	})
+	for index, interval := range ordered {
+		if index > 0 && interval.StartMinute < ordered[index-1].EndMinute {
+			return ErrInvalidInput
+		}
+		if err := s.ValidateAttendance(ctx, dateValue, interval.StartMinute, interval.EndMinute); err != nil {
+			return err
+		}
+	}
+	plans := make([]sqlite.AttendancePlan, 0, len(ordered))
+	for _, interval := range ordered {
+		plans = append(plans, sqlite.AttendancePlan{Date: dateValue, StartMinute: interval.StartMinute, EndMinute: interval.EndMinute})
+	}
+	if err := s.store.ReplaceAttendance(ctx, member.ID, dateValue, plans, s.now()); err != nil {
 		return err
 	}
-	return s.store.UpsertAttendance(ctx, member.ID, dateValue, start, end, s.now())
+	return nil
 }
 
 func (s *Service) ValidateAttendance(ctx context.Context, dateValue string, start, end int) error {

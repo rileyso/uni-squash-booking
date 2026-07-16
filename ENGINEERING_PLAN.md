@@ -29,7 +29,7 @@ Decision D1: reduce the first implementation release.
 - Venue-wide turnout by 30-minute interval and public display-name details
 - Court 1 and Court 2 operational status, light hours, competitions, coaching, closures, official social sessions, and weekly recurrence with dated exceptions
 - Self-service permanent accounts, full username plus four-digit PIN sign-in, secure sessions, PIN change, Riley-assisted PIN recovery, and self-service account deletion
-- One venue-wide attendance plan per account per day, including add, change, remove, schedule revalidation, reduced-capacity warnings, and schedule-changed warnings
+- One or more venue-wide attendance intervals per account per day, including add, change, remove, schedule revalidation, reduced-capacity warnings, and schedule-changed warnings
 - Riley's protected web administration workflow for maintaining the operational schedule and resetting PINs, plus a deployment-local moderation CLI
 - Club location, contact, and WhatsApp information
 - Self-reported member/non-member status stored for later aggregate analysis
@@ -80,7 +80,7 @@ Account self-deletion remains in Release 1 because public upcoming names require
 - Release 1 uses one SQLite database file through Go's `database/sql` API.
 - SQLite runs with foreign-key enforcement enabled, WAL journaling, a bounded busy timeout, and short explicit write transactions.
 - The application is deployed as one active Go process on one machine. Horizontal application replicas and a database file on network storage are unsupported.
-- Database constraints remain authoritative for scalar invariants such as immutable identifiers, unique full usernames/player codes, one attendance plan per account and Sydney date, foreign keys, and valid enum/check values.
+- Database constraints remain authoritative for scalar invariants such as immutable identifiers, unique full usernames/player codes, non-duplicated attendance intervals per account and Sydney date, foreign keys, and valid enum/check values.
 - Schedule overlap and continuous-availability rules that SQLite cannot express cleanly are revalidated inside the same write transaction that commits the change.
 - Backups must use SQLite's online backup mechanism or a transactionally consistent snapshot; copying a live database/WAL pair ad hoc is not an approved backup procedure.
 - Schema and queries avoid unnecessary SQLite-specific behavior so a later PostgreSQL migration remains possible, but Release 1 does not build or maintain dual-database support.
@@ -168,12 +168,12 @@ This and future: end old series + create replacement series (one transaction)
 
 ### D8: Last-write-wins attendance replacement
 
-- SQLite enforces one attendance plan per account and Sydney civil date with a unique constraint.
-- Add/change uses an atomic upsert keyed by account and date. Remove deletes the currently stored plan for that owned account/date even if another tab rendered an older value.
-- Every mutation runs in a short write transaction that rechecks the authenticated account, date window, interval shape, and continuous current schedule availability before writing.
+- Decision update, 16 July 2026: SQLite allows multiple non-overlapping attendance intervals per account and Sydney civil date.
+- Add/change uses an atomic same-day replacement keyed by account and date. Remove deletes the currently stored intervals for that owned account/date even if another tab rendered an older value.
+- Every mutation runs in a short write transaction that rechecks the authenticated account, date window, interval shapes, non-overlap, and continuous current schedule availability for each interval before writing.
 - Schedule revalidation never trusts a timetable revision or form field supplied by the browser. If the interval is no longer valid, no write occurs and the approved preserved-input conflict UI is returned.
 - The response always re-renders the authoritative interval and `Your plans` state after commit; it never assumes that submitted values became final without reading the result.
-- Duplicate rapid submissions are safe because the unique key and upsert make the final row well-formed, though the most recently committed valid request wins.
+- Duplicate rapid submissions are safe because same-day replacement makes the final interval set well-formed, though the most recently committed valid request wins.
 - Accepted risk: two stale tabs can silently replace or remove a newer plan. Release 1 does not carry an optimistic plan version or present a lost-update conflict.
 - A process-wide mutex is not part of correctness. Database transactions and constraints remain authoritative so a future storage migration does not inherit hidden in-memory locking assumptions.
 
@@ -592,7 +592,7 @@ The trust boundary is the application use-case layer: browser fields and headers
 | Migration fails | `goose` startup result and schema version check | bounded maintenance/unavailable response | stop new image, restore and verify the preflight backup under recovery lockdown, then start prior image |
 | Recovery generation mismatches or lockdown is set | startup generation comparison | ordinary service remains unready | run the local identity-scrubbing recovery procedure, verify it, then clear lockdown with fresh administrator authentication |
 | Schedule changes during attendance submission | transaction revalidation | conflict explanation with submitted date/time preserved | member reviews current timetable and resubmits |
-| Two tabs change the same attendance plan | documented last-write-wins outcome | latest committed valid state is rendered | no automatic merge; member changes again if needed |
+| Two tabs change the same day's attendance intervals | documented last-write-wins outcome | latest committed valid state is rendered | no automatic merge; member changes again if needed |
 | Session is revoked during mutation | transactional ownership/session check | sign-in required; mutation does not commit | sign in again or complete Riley reset flow |
 | Throttle state is lost on restart | process lifecycle event | accumulated limits disappear | accepted Release 1 risk; investigate persistent/shared limits after abuse evidence |
 | Public fake/impersonating account | member report or operator observation | polluted turnout until action | exact-identifier deployment CLI suspension/deletion; revoke sessions and future plans |

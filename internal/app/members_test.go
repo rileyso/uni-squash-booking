@@ -41,6 +41,13 @@ func TestAccountSessionAndMultipleDailyPlans(t *testing.T) {
 	if len(plans) != 2 || plans[0].StartMinute != 990 {
 		t.Fatalf("same-day plan was not replaced: %#v", plans)
 	}
+	if err := service.SaveAttendanceIntervals(ctx, member, "2026-07-14", []AttendanceInterval{{StartMinute: 720, EndMinute: 840}, {StartMinute: 960, EndMinute: 1080}}); err != nil {
+		t.Fatalf("save split Tuesday: %v", err)
+	}
+	plans, _ = service.Plans(ctx, member)
+	if len(plans) != 3 || plans[0].StartMinute != 720 || plans[1].StartMinute != 960 {
+		t.Fatalf("same-day split intervals were not saved: %#v", plans)
+	}
 }
 
 func TestAttendanceRejectsUnavailableAndInvalidRanges(t *testing.T) {
@@ -62,5 +69,8 @@ func TestAttendanceRejectsUnavailableAndInvalidRanges(t *testing.T) {
 		if err := service.SaveAttendance(ctx, member, test.date, test.start, test.end); err == nil {
 			t.Fatalf("invalid plan accepted: %#v", test)
 		}
+	}
+	if err := service.SaveAttendanceIntervals(ctx, member, "2026-07-14", []AttendanceInterval{{StartMinute: 960, EndMinute: 1080}, {StartMinute: 1020, EndMinute: 1140}}); err == nil {
+		t.Fatal("overlapping split intervals were accepted")
 	}
 }

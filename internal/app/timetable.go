@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rileyso/uni-squash-booking/internal/domain"
@@ -11,14 +13,21 @@ import (
 )
 
 type Dashboard struct {
-	Days         []Day
-	DateChoices  []DateChoice
-	Rows         []TimetableRow
-	DesktopSlots []Slot
-	SelectedDate string
-	PreviousDate string
-	NextDate     string
-	Detail       *IntervalDetail
+	Days                []Day
+	DateChoices         []DateChoice
+	Rows                []TimetableRow
+	DesktopSlots        []Slot
+	SelectedDate        string
+	PreviousDate        string
+	NextDate            string
+	SelectedMinute      int
+	SelectedTimeQuery   string
+	HasSelectedInterval bool
+	SelectedRanges      []SelectedRange
+	SelectedTotal       string
+	CanConfirmSelection bool
+	SelectionNotice     string
+	Detail              *IntervalDetail
 }
 
 type DateChoice struct {
@@ -40,6 +49,14 @@ type IntervalDetail struct {
 	ReducedCapacity bool
 	CanAttend       bool
 	StartMinute     int
+}
+
+type SelectedRange struct {
+	StartMinute int
+	EndMinute   int
+	StartLabel  string
+	EndLabel    string
+	Duration    string
 }
 
 type TimetableRow struct {
@@ -73,6 +90,7 @@ type Slot struct {
 	CourtOne        CourtState
 	CourtTwo        CourtState
 	ReducedCapacity bool
+	Selected        bool
 }
 
 type CourtState struct {
@@ -93,6 +111,7 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 			selected = parsed
 		}
 	}
+	selectedMinuteOrder, selectedMinuteSet := parseSelectedMinutes(requestedMinute)
 	stripStart := mondayOfWeek(selected, s.location)
 	through := stripStart.AddDays(6, s.location)
 	data, err := s.store.LoadAnonymousTimetable(ctx, stripStart, through)
@@ -127,7 +146,7 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 			}
 			count := attendanceCount(data.Attendance, date.String(), interval)
 			band, class := turnoutBand(count)
-			day.Slots = append(day.Slots, Slot{StartMinute: minute, TimeLabel: minuteLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open")})
+			day.Slots = append(day.Slots, Slot{StartMinute: minute, TimeLabel: minuteLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open"), Selected: selectedMinuteSet[minute]})
 		}
 		dashboard.Days = append(dashboard.Days, day)
 		if day.Selected {
@@ -148,7 +167,7 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		}
 		count := attendanceCount(data.Attendance, selected.String(), interval)
 		band, class := turnoutBand(count)
-		dashboard.DesktopSlots = append(dashboard.DesktopSlots, Slot{StartMinute: minute, TimeLabel: hourLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open")})
+		dashboard.DesktopSlots = append(dashboard.DesktopSlots, Slot{StartMinute: minute, TimeLabel: hourLabel(minute), Count: count, Band: band, BandClass: class, CourtOne: one, CourtTwo: two, ReducedCapacity: (one.Class == "open") != (two.Class == "open"), Selected: selectedMinuteSet[minute]})
 	}
 	for slotIndex := 0; len(dashboard.Days) > 0 && slotIndex < len(dashboard.Days[0].Slots); slotIndex++ {
 		row := TimetableRow{TimeLabel: dashboard.Days[0].Slots[slotIndex].TimeLabel}
@@ -157,19 +176,113 @@ func (s *Service) Dashboard(ctx context.Context, requested, requestedMinute stri
 		}
 		dashboard.Rows = append(dashboard.Rows, row)
 	}
-	if minute, err := strconv.Atoi(requestedMinute); err == nil && selectedDay.Date != "" {
-		detailSlots := selectedDay.Slots
-		if minute%60 == 0 {
-			detailSlots = dashboard.DesktopSlots
+	if len(selectedMinuteOrder) > 0 && selectedDay.Date != "" {
+		validSelected := make([]int, 0, len(selectedMinuteOrder))
+		for _, minute := range selectedMinuteOrder {
+			detailSlots := selectedDay.Slots
+			if minute%60 == 0 {
+				detailSlots = dashboard.DesktopSlots
+			}
+			for _, slot := range detailSlots {
+				if slot.StartMinute == minute {
+					validSelected = append(validSelected, slot.StartMinute)
+					dashboard.Detail = &IntervalDetail{DateLabel: selectedDay.DayName + " " + selectedDay.DateLabel, Date: selectedDay.Date, TimeLabel: slot.TimeLabel, Count: slot.Count, Band: slot.Band, CourtOne: slot.CourtOne, CourtTwo: slot.CourtTwo, ReducedCapacity: slot.ReducedCapacity, CanAttend: slot.CourtOne.Class == "open" || slot.CourtTwo.Class == "open", StartMinute: slot.StartMinute}
+					dashboard.SelectedMinute = slot.StartMinute
+					dashboard.HasSelectedInterval = true
+					break
+				}
+			}
 		}
-		for _, slot := range detailSlots {
-			if slot.StartMinute == minute {
-				dashboard.Detail = &IntervalDetail{DateLabel: selectedDay.DayName + " " + selectedDay.DateLabel, Date: selectedDay.Date, TimeLabel: slot.TimeLabel, Count: slot.Count, Band: slot.Band, CourtOne: slot.CourtOne, CourtTwo: slot.CourtTwo, ReducedCapacity: slot.ReducedCapacity, CanAttend: slot.CourtOne.Class == "open" || slot.CourtTwo.Class == "open", StartMinute: slot.StartMinute}
+		sort.Ints(validSelected)
+		dashboard.SelectedTimeQuery = minuteQuery(validSelected)
+		dashboard.SelectedRanges = selectedRanges(validSelected)
+		dashboard.SelectedTotal = selectedTotal(dashboard.SelectedRanges)
+		allValid := len(dashboard.SelectedRanges) > 0
+		for _, selected := range dashboard.SelectedRanges {
+			if err := s.ValidateAttendance(ctx, selectedDay.Date, selected.StartMinute, selected.EndMinute); err != nil {
+				allValid = false
 				break
+			}
+		}
+		if allValid {
+			dashboard.CanConfirmSelection = true
+		} else if len(dashboard.SelectedRanges) > 0 {
+			if selected.Time(s.location).Before(today.Time(s.location)) {
+				dashboard.SelectionNotice = "Week day no longer available."
+			} else {
+				dashboard.SelectionNotice = "One or more selected ranges are not continuously open for play."
 			}
 		}
 	}
 	return dashboard, nil
+}
+
+func parseSelectedMinutes(value string) ([]int, map[int]bool) {
+	selected := map[int]bool{}
+	var ordered []int
+	for _, part := range strings.Split(value, ",") {
+		minute, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil || selected[minute] {
+			continue
+		}
+		selected[minute] = true
+		ordered = append(ordered, minute)
+	}
+	return ordered, selected
+}
+
+func minuteQuery(minutes []int) string {
+	parts := make([]string, 0, len(minutes))
+	for _, minute := range minutes {
+		parts = append(parts, strconv.Itoa(minute))
+	}
+	return strings.Join(parts, ",")
+}
+
+func selectedRanges(minutes []int) []SelectedRange {
+	if len(minutes) == 0 {
+		return nil
+	}
+	var ranges []SelectedRange
+	start := minutes[0]
+	end := start + 60
+	for _, minute := range minutes[1:] {
+		if minute == end {
+			end = minute + 60
+			continue
+		}
+		ranges = append(ranges, selectedRange(start, end))
+		start = minute
+		end = minute + 60
+	}
+	ranges = append(ranges, selectedRange(start, end))
+	return ranges
+}
+
+func selectedRange(start, end int) SelectedRange {
+	return SelectedRange{StartMinute: start, EndMinute: end, StartLabel: minuteLabel(start), EndLabel: minuteLabel(end), Duration: durationLabel(end - start)}
+}
+
+func selectedTotal(ranges []SelectedRange) string {
+	total := 0
+	for _, selected := range ranges {
+		total += selected.EndMinute - selected.StartMinute
+	}
+	return durationLabel(total)
+}
+
+func durationLabel(minutes int) string {
+	if minutes == 30 {
+		return "30 minutes"
+	}
+	if minutes%60 == 0 {
+		hours := minutes / 60
+		if hours == 1 {
+			return "1 hour"
+		}
+		return strconv.Itoa(hours) + " hours"
+	}
+	return strconv.Itoa(minutes/60) + "½ hours"
 }
 
 func dateChoices(today, selected domain.CivilDate, location *time.Location) []DateChoice {

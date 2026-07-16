@@ -1,5 +1,5 @@
-GO ?= /home/riso7312/.local/go/bin/go
-SQLC ?= /home/riso7312/.local/bin/sqlc
+GO ?= go
+SQLC ?= sqlc
 
 .PHONY: generate fmt test race vet coverage check run dev
 
