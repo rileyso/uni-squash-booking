@@ -1,0 +1,17 @@
+.timeline-track {
+  top: 1.2rem;
+  height: .5rem;
+  border: 0;
+  border-radius: 0;
+  background: repeating-linear-gradient(to right, rgba(16, 42, 67, .45) 0 1px, transparent 1px calc(100% / 12)), #FFA500;
+}
+
+.timeline-headings { display: flex; justify-content: space-between; margin: .25rem .6rem -.45rem; color: var(--slate); font-weight: 700; }
+.timeline-date { margin: .25rem 0 0; text-align: center; font-weight: 700; }
+.timeline-availability { position: absolute; z-index: 1; top: 1.2rem; left: 0; right: 0; height: .5rem; display: grid; grid-template-columns: repeat(24, 1fr); overflow: hidden; pointer-events: none; }
+.timeline-availability span.closed { background: var(--danger); }
+.timeline-availability span.open { background: transparent; }
+.graduated-timeline input[type="range"] { z-index: 2; }
+.graduated-timeline input[type="range"]::-webkit-slider-runnable-track { height: .5rem; }
+.graduated-timeline input[type="range"]::-webkit-slider-thumb { margin-top: -.38rem; }
+.graduated-timeline input[type="range"]::-moz-range-track { height: .5rem; }

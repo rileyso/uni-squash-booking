@@ -178,6 +178,9 @@ func (s *Service) ValidateAttendance(ctx context.Context, dateValue string, star
 	if err != nil {
 		return ErrInvalidInput
 	}
+	if start < 600 || end > 1320 || end-start < 30 {
+		return ErrInvalidInput
+	}
 	today := domain.CivilDateFromTime(s.now(), s.location)
 	if date.Time(s.location).Before(today.Time(s.location)) || date.Time(s.location).After(today.AddDays(13, s.location).Time(s.location)) {
 		return ErrInvalidInput

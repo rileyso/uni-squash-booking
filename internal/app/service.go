@@ -26,7 +26,11 @@ func New(configuration config.Config, store *sqlite.Store) (*Service, error) {
 	service := &Service{config: configuration, store: store, location: location, now: time.Now}
 	if configuration.Synthetic {
 		today := domain.CivilDateFromTime(service.now(), location)
-		if err := store.LoadSyntheticFixtures(context.Background(), today, location); err != nil {
+		trialPINHash, err := hashPIN("1111")
+		if err != nil {
+			return nil, fmt.Errorf("hash synthetic trial PIN: %w", err)
+		}
+		if err := store.LoadSyntheticFixtures(context.Background(), today, location, trialPINHash); err != nil {
 			return nil, err
 		}
 	}

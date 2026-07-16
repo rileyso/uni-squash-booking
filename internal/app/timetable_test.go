@@ -26,7 +26,11 @@ func testService(t *testing.T) *Service {
 	fixed := time.Date(2026, 7, 14, 2, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return fixed }
 	today := domain.CivilDateFromTime(fixed, service.location)
-	if err := store.LoadSyntheticFixtures(context.Background(), today, service.location); err != nil {
+	trialPINHash, err := hashPIN("1111")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.LoadSyntheticFixtures(context.Background(), today, service.location, trialPINHash); err != nil {
 		t.Fatal(err)
 	}
 	return service
