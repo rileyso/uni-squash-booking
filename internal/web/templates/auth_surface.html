@@ -22,7 +22,7 @@
       <label>Four-digit PIN<input name="pin" required pattern="[0-9]{4}" inputmode="numeric" type="password" autocomplete="current-password"></label>
       <label class="check"><input type="checkbox" data-remember-toggle> Remember username on this browser</label>
       <input type="hidden" name="intent_date" value="{{.IntentDate}}"><input type="hidden" name="intent_start" value="{{.IntentStart}}"><input type="hidden" name="intent_end" value="{{.IntentEnd}}"><input type="hidden" name="intent_time" value="{{.IntentTime}}">
-      <button type="submit">Sign in</button>
+      <button class="sign-in-button" type="submit">Sign in</button>
     </form>
     <p class="form-switch">New here? <a href="/accounts/new?intent_date={{.IntentDate}}&amp;intent_start={{.IntentStart}}&amp;intent_end={{.IntentEnd}}&amp;intent_time={{.IntentTime}}" hx-get="/accounts/new?intent_date={{.IntentDate}}&amp;intent_start={{.IntentStart}}&amp;intent_end={{.IntentEnd}}&amp;intent_time={{.IntentTime}}" hx-target="#auth-surface-root" hx-swap="innerHTML">Create account</a></p>
     {{end}}

@@ -322,6 +322,25 @@ func TestDesktopTimetableUsesSelectedDayHorizontalLayout(t *testing.T) {
 	}
 }
 
+func TestDashboardIncludesAccessibleExpandableMobileNavigation(t *testing.T) {
+	server := newTestServer(t)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := response.Body.String()
+	for _, expected := range []string{
+		`src="/static/mobile-nav.js"`,
+		`class="nav-toggle"`,
+		`aria-expanded="false"`,
+		`aria-controls="club-navigation"`,
+		`id="club-navigation"`,
+		`<span class="nav-label">Attendance</span>`,
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("mobile navigation missing %q", expected)
+		}
+	}
+}
+
 func TestIndexHTMXReturnsTimetableInteractionFragment(t *testing.T) {
 	server := newTestServer(t)
 	request := httptest.NewRequest(http.MethodGet, "/?date=2026-07-21&time=960", nil)

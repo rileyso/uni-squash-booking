@@ -51,6 +51,9 @@ Run all generation, tests, race checks, vetting, and the 80% project-owned cover
 make check
 ```
 
+Before a synthetic hosted rehearsal or production release, execute the
+[manual validation and hosting-readiness runbook](docs/MANUAL_RELEASE_CHECKLIST.md).
+
 Expected local tools: Go 1.26.4, `sqlc` 1.31.1, `goose` 3.27.1, and `jq` 1.8.1.
 
 ## Synthetic moderation

@@ -1,3 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Planned attendance">
-  <path d="M34 354c54-54 94-3 130 72C241 247 346 83 486 20" fill="none" stroke="#0bb98f" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="224" fill="#00c800"/>
+  <path d="m172 257 56 56 113-113" fill="none" stroke="#000" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

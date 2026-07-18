@@ -11,6 +11,7 @@
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/attendance.js" defer></script>
   <script src="/static/auth.js" defer></script>
+  <script src="/static/mobile-nav.js" defer></script>
 </head>
 <body>
   {{if .Synthetic}}<div class="synthetic" role="status">Synthetic development data only</div>{{end}}
@@ -18,8 +19,8 @@
   <a class="skip-link" href="#timetable">Skip to timetable</a>
   <div class="app-frame">
     <aside class="sidebar" aria-label="Club navigation">
-      <div class="masthead"><span class="club-mark" aria-hidden="true">SU</span><div><strong>Sydney Uni Squash</strong><span></span></div></div>
-      <nav><a class="active" href="/" aria-current="page">▦ <span>Attendance</span></a><a href="#club-info">ⓘ <span>Club information</span></a></nav>
+      <div class="masthead"><span class="club-mark" aria-hidden="true">SU</span><div><strong>Sydney Uni Squash</strong><span></span></div><button class="nav-toggle" type="button" aria-expanded="false" aria-controls="club-navigation"><span aria-hidden="true">☰</span><span class="visually-hidden">Expand navigation</span></button></div>
+      <nav id="club-navigation"><a class="active" href="/" aria-current="page"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-label">Attendance</span></a><a href="#club-info"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-label">Club information</span></a></nav>
       <section id="club-info" class="club-info"><h2>New to the club</h2><p>Location: Manning Squash Courts (A24), contact and WhatsApp details are awaiting committee-approved copy.</p></section>
     </aside>
     <main>
